@@ -97,7 +97,11 @@
         }
     };
 
-    new TempusDominus(document.getElementById('entryDatePicker'), commonOpts);
-    new TempusDominus(document.getElementById('exitDatePicker'), commonOpts);
+    if (window.tempusDominus) {
+        new tempusDominus.TempusDominus(document.getElementById('entryDatePicker'), commonOpts);
+        new tempusDominus.TempusDominus(document.getElementById('exitDatePicker'), commonOpts);
+    } else {
+        console.error('tempusDominus library not loaded');
+    }
 </script>
 {% endblock %} 
