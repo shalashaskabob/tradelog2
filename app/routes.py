@@ -21,13 +21,18 @@ def add_trade():
             if request.form.get('exit_date'):
                 exit_date = datetime.strptime(request.form['exit_date'], '%Y-%m-%dT%H:%M')
 
+            # Determine strategy
+            selected_strategy = request.form.get('strategy')
+            new_strategy = request.form.get('strategy_new')
+            strategy_value = new_strategy.strip() if new_strategy else selected_strategy
+
             new_trade = Trade(
                 ticker=request.form['ticker'],
                 entry_date=entry_date,
                 entry_price=float(request.form['entry_price']),
                 position_size=float(request.form['position_size']),
                 direction=request.form['direction'],
-                strategy=request.form.get('strategy'),
+                strategy=strategy_value,
                 notes=request.form.get('notes'),
                 exit_date=exit_date
             )
@@ -50,4 +55,7 @@ def add_trade():
             db.session.rollback()
             flash(f'Error adding trade: {e}', 'danger')
 
-    return render_template('add_trade.html', title='Add Trade') 
+    # GET request - gather existing strategies for dropdown
+    strategies = [row[0] for row in db.session.query(Trade.strategy).distinct().all() if row[0]]
+    strategies.sort()
+    return render_template('add_trade.html', title='Add Trade', strategies=strategies) 

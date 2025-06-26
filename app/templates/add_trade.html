@@ -36,8 +36,14 @@
                 <input type="number" step="any" class="form-control" id="exit_price" name="exit_price">
             </div>
             <div class="form-group">
-                <label for="strategy" class="form-label mt-4">Strategy</label>
-                <input type="text" class="form-control" id="strategy" name="strategy">
+                <label for="strategy_select" class="form-label mt-4">Strategy</label>
+                <select class="form-select" id="strategy_select" name="strategy">
+                    <option value="" selected>-- Add new strategy --</option>
+                    {% for strat in strategies %}
+                        <option value="{{ strat }}">{{ strat }}</option>
+                    {% endfor %}
+                </select>
+                <input type="text" class="form-control mt-2" id="strategy_new" name="strategy_new" placeholder="New strategy" style="display:none;">
             </div>
             <div class="form-group">
                 <label for="notes" class="form-label mt-4">Notes</label>
@@ -46,4 +52,16 @@
             <button type="submit" class="btn btn-primary mt-4">Add Trade</button>
         </fieldset>
     </form>
+    <script>
+        const strategySelect = document.getElementById('strategy_select');
+        const strategyNewInput = document.getElementById('strategy_new');
+        strategySelect.addEventListener('change', () => {
+            if (strategySelect.value === '') {
+                strategyNewInput.style.display = 'block';
+            } else {
+                strategyNewInput.style.display = 'none';
+                strategyNewInput.value = '';
+            }
+        });
+    </script>
 {% endblock %} 
