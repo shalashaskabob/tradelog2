@@ -4,8 +4,7 @@ from app.models import Trade
 from datetime import datetime
 
 FUTURES_SYMBOLS = [
-    'ES', 'NQ', 'YM', 'RTY', 'CL', 'GC', 'ZB', 'ZN', '6E', '6J', '6B',
-    'HG', 'SI', 'NG', 'LE', 'HE', 'ZS', 'ZC', 'ZW', 'KC', 'SB'
+    'MNQ', 'NQ', 'MES', 'ES', 'GC', 'MGC'
 ]
 
 bp = Blueprint('main', __name__)
@@ -72,4 +71,47 @@ def add_trade():
         title='Add Trade',
         strategies=strategies,
         symbols=FUTURES_SYMBOLS,
+    )
+
+# ---------------------- Statistics ----------------------
+
+@bp.route('/statistics')
+def statistics():
+    trades = Trade.query.order_by(Trade.entry_date).all()
+
+    total = len(trades)
+    winning = sum(1 for t in trades if t.pnl is not None and t.pnl > 0)
+    losing = sum(1 for t in trades if t.pnl is not None and t.pnl < 0)
+    win_rate = round((winning / total) * 100, 2) if total else 0
+    avg_pnl = round(sum(t.pnl or 0 for t in trades) / total, 2) if total else 0
+
+    cumulative = []
+    cum = 0
+    dates = []
+    for t in trades:
+        ref_date = t.exit_date or t.entry_date
+        dates.append(ref_date.strftime('%Y-%m-%d'))
+        if t.pnl is not None:
+            cum += t.pnl
+        cumulative.append(cum)
+
+    # PnL by symbol
+    symbol_dict = {}
+    for t in trades:
+        symbol_dict.setdefault(t.ticker, 0)
+        symbol_dict[t.ticker] += t.pnl or 0
+
+    symbol_names = list(symbol_dict.keys())
+    symbol_pnls = [round(v, 2) for v in symbol_dict.values()]
+
+    return render_template(
+        'statistics.html',
+        title='Statistics',
+        total_trades=total,
+        win_rate=win_rate,
+        avg_pnl=avg_pnl,
+        dates=dates,
+        cumulative=cumulative,
+        symbol_names=symbol_names,
+        symbol_pnls=symbol_pnls,
     ) 

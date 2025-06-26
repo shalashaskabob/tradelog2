@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Statistics</h1>
+<div class="row mb-4">
+  <div class="col-md-4">
+    <div class="card text-bg-dark mb-3">
+      <div class="card-header">Total Trades</div>
+      <div class="card-body"><h4 class="card-title">{{ total_trades }}</h4></div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card text-bg-dark mb-3">
+      <div class="card-header">Win Rate</div>
+      <div class="card-body"><h4 class="card-title">{{ win_rate }}%</h4></div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card text-bg-dark mb-3">
+      <div class="card-header">Average PnL</div>
+      <div class="card-body"><h4 class="card-title">{{ avg_pnl }}</h4></div>
+    </div>
+  </div>
+</div>
+
+<div class="mb-5">
+  <h3>Cumulative PnL</h3>
+  <div id="cumulative_chart" style="height:400px;"></div>
+</div>
+
+<div class="mb-5">
+  <h3>PnL by Symbol</h3>
+  <div id="symbol_bar" style="height:400px;"></div>
+</div>
+
+<!-- Plotly -->
+<script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const dates = {{ dates | tojson }};
+    const cumulative = {{ cumulative | tojson }};
+    const symbolNames = {{ symbol_names | tojson }};
+    const symbolPnls = {{ symbol_pnls | tojson }};
+
+    Plotly.newPlot('cumulative_chart', [{
+      x: dates,
+      y: cumulative,
+      type: 'scatter',
+      mode: 'lines+markers',
+      line: {color: '#4caf50'}
+    }], {margin: {t:40}});
+
+    Plotly.newPlot('symbol_bar', [{
+      x: symbolNames,
+      y: symbolPnls,
+      type: 'bar',
+      marker: {color: '#2196f3'}
+    }], {margin:{t:40}});
+  });
+</script>
+{% endblock %} 
