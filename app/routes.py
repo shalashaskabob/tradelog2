@@ -23,8 +23,12 @@ def add_trade():
 
             # Determine strategy
             selected_strategy = request.form.get('strategy')
-            new_strategy = request.form.get('strategy_new')
-            strategy_value = new_strategy.strip() if new_strategy else selected_strategy
+            strategy_value = None
+            if selected_strategy == "__new__":
+                # user provided new strategy in separate field
+                strategy_value = request.form.get('strategy_new').strip() if request.form.get('strategy_new') else None
+            else:
+                strategy_value = selected_strategy
 
             new_trade = Trade(
                 ticker=request.form['ticker'],

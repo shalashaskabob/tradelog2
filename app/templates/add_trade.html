@@ -38,12 +38,13 @@
             <div class="form-group">
                 <label for="strategy_select" class="form-label mt-4">Strategy</label>
                 <select class="form-select" id="strategy_select" name="strategy">
-                    <option value="" selected>-- Add new strategy --</option>
+                    <option value="" selected disabled>-- Select strategy --</option>
                     {% for strat in strategies %}
                         <option value="{{ strat }}">{{ strat }}</option>
                     {% endfor %}
+                    <option value="__new__">+ Add new strategy</option>
                 </select>
-                <input type="text" class="form-control mt-2" id="strategy_new" name="strategy_new" placeholder="New strategy" style="display:none;">
+                <input type="text" class="form-control mt-2" id="strategy_new" name="strategy_new" placeholder="Enter new strategy name" style="display:none;">
             </div>
             <div class="form-group">
                 <label for="notes" class="form-label mt-4">Notes</label>
@@ -55,13 +56,20 @@
     <script>
         const strategySelect = document.getElementById('strategy_select');
         const strategyNewInput = document.getElementById('strategy_new');
-        strategySelect.addEventListener('change', () => {
-            if (strategySelect.value === '') {
+
+        function toggleStrategyInput() {
+            if (strategySelect.value === '__new__') {
                 strategyNewInput.style.display = 'block';
+                strategyNewInput.required = true;
             } else {
                 strategyNewInput.style.display = 'none';
+                strategyNewInput.required = false;
                 strategyNewInput.value = '';
             }
-        });
+        }
+
+        strategySelect.addEventListener('change', toggleStrategyInput);
+        // Run on page load in case the browser restores previous value
+        toggleStrategyInput();
     </script>
 {% endblock %} 
