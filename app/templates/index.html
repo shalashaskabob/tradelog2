@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Trade Log</h1>
+        <a href="{{ url_for('main.add_trade') }}" class="btn btn-success">Add New Trade</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th scope="col">Ticker</th>
+                    <th scope="col">Entry Date</th>
+                    <th scope="col">Entry Price</th>
+                    <th scope="col">Direction</th>
+                    <th scope="col">Position Size</th>
+                    <th scope="col">Exit Date</th>
+                    <th scope="col">Exit Price</th>
+                    <th scope="col">PnL</th>
+                    <th scope="col">Strategy</th>
+                    <th scope="col">Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for trade in trades %}
+                    <tr class="table-secondary">
+                        <td>{{ trade.ticker }}</td>
+                        <td>{{ trade.entry_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ "%.2f"|format(trade.entry_price) }}</td>
+                        <td>{{ trade.direction }}</td>
+                        <td>{{ trade.position_size }}</td>
+                        <td>{{ trade.exit_date.strftime('%Y-%m-%d %H:%M') if trade.exit_date else '' }}</td>
+                        <td>{{ "%.2f"|format(trade.exit_price) if trade.exit_price else '' }}</td>
+                        <td class="{{ 'text-success' if trade.pnl > 0 else 'text-danger' if trade.pnl < 0 else '' }}">
+                            {{ "%.2f"|format(trade.pnl) if trade.pnl is not none else '' }}
+                        </td>
+                        <td>{{ trade.strategy }}</td>
+                        <td>{{ trade.notes }}</td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="10" class="text-center">No trades found.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %} 

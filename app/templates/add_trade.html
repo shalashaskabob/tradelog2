@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Add a New Trade</h1>
+    <form method="POST" action="{{ url_for('main.add_trade') }}">
+        <fieldset>
+            <div class="form-group">
+                <label for="ticker" class="form-label mt-4">Ticker</label>
+                <input type="text" class="form-control" id="ticker" name="ticker" required>
+            </div>
+            <div class="form-group">
+                <label for="entry_date" class="form-label mt-4">Entry Date</label>
+                <input type="datetime-local" class="form-control" id="entry_date" name="entry_date" required>
+            </div>
+            <div class="form-group">
+                <label for="entry_price" class="form-label mt-4">Entry Price</label>
+                <input type="number" step="any" class="form-control" id="entry_price" name="entry_price" required>
+            </div>
+            <div class="form-group">
+                <label for="position_size" class="form-label mt-4">Position Size</label>
+                <input type="number" step="any" class="form-control" id="position_size" name="position_size" required>
+            </div>
+            <div class="form-group">
+                <label for="direction" class="form-label mt-4">Direction</label>
+                <select class="form-select" id="direction" name="direction">
+                    <option>Long</option>
+                    <option>Short</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="exit_date" class="form-label mt-4">Exit Date</label>
+                <input type="datetime-local" class="form-control" id="exit_date" name="exit_date">
+            </div>
+            <div class="form-group">
+                <label for="exit_price" class="form-label mt-4">Exit Price</label>
+                <input type="number" step="any" class="form-control" id="exit_price" name="exit_price">
+            </div>
+            <div class="form-group">
+                <label for="strategy" class="form-label mt-4">Strategy</label>
+                <input type="text" class="form-control" id="strategy" name="strategy">
+            </div>
+            <div class="form-group">
+                <label for="notes" class="form-label mt-4">Notes</label>
+                <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary mt-4">Add Trade</button>
+        </fieldset>
+    </form>
+{% endblock %} 
