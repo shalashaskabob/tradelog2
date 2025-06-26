@@ -5,12 +5,16 @@
     <form method="POST" action="{{ url_for('main.add_trade') }}">
         <fieldset>
             <div class="form-group">
-                <label for="ticker" class="form-label mt-4">Ticker</label>
-                <input type="text" class="form-control" id="ticker" name="ticker" required>
+                <label for="ticker" class="form-label mt-4">Symbol</label>
+                <select class="form-select" id="ticker" name="ticker" required>
+                    {% for sym in symbols %}
+                        <option value="{{ sym }}">{{ sym }}</option>
+                    {% endfor %}
+                </select>
             </div>
             <div class="form-group">
                 <label for="entry_date" class="form-label mt-4">Entry Date</label>
-                <input type="datetime-local" class="form-control" id="entry_date" name="entry_date" required>
+                <input type="text" class="form-control datetimepicker" id="entry_date" name="entry_date" required>
             </div>
             <div class="form-group">
                 <label for="entry_price" class="form-label mt-4">Entry Price</label>
@@ -29,7 +33,7 @@
             </div>
             <div class="form-group">
                 <label for="exit_date" class="form-label mt-4">Exit Date</label>
-                <input type="datetime-local" class="form-control" id="exit_date" name="exit_date">
+                <input type="text" class="form-control datetimepicker" id="exit_date" name="exit_date">
             </div>
             <div class="form-group">
                 <label for="exit_price" class="form-label mt-4">Exit Price</label>
@@ -71,5 +75,12 @@
         strategySelect.addEventListener('change', toggleStrategyInput);
         // Run on page load in case the browser restores previous value
         toggleStrategyInput();
+
+        // Initialize flatpickr on date inputs
+        flatpickr('.datetimepicker', {
+            enableTime: true,
+            dateFormat: 'Y-m-d\\TH:i',
+            allowInput: true,
+        });
     </script>
 {% endblock %} 

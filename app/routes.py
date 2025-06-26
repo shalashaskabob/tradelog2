@@ -3,6 +3,11 @@ from app import db
 from app.models import Trade
 from datetime import datetime
 
+FUTURES_SYMBOLS = [
+    'ES', 'NQ', 'YM', 'RTY', 'CL', 'GC', 'ZB', 'ZN', '6E', '6J', '6B',
+    'HG', 'SI', 'NG', 'LE', 'HE', 'ZS', 'ZC', 'ZW', 'KC', 'SB'
+]
+
 bp = Blueprint('main', __name__)
 
 @bp.route('/')
@@ -62,4 +67,9 @@ def add_trade():
     # GET request - gather existing strategies for dropdown
     strategies = [row[0] for row in db.session.query(Trade.strategy).distinct().all() if row[0]]
     strategies.sort()
-    return render_template('add_trade.html', title='Add Trade', strategies=strategies) 
+    return render_template(
+        'add_trade.html',
+        title='Add Trade',
+        strategies=strategies,
+        symbols=FUTURES_SYMBOLS,
+    ) 
