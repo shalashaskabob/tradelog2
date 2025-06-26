@@ -57,30 +57,31 @@
             <button type="submit" class="btn btn-primary mt-4">Add Trade</button>
         </fieldset>
     </form>
-    <script>
-        const strategySelect = document.getElementById('strategy_select');
-        const strategyNewInput = document.getElementById('strategy_new');
+{% endblock %}
 
-        function toggleStrategyInput() {
-            if (strategySelect.value === '__new__') {
-                strategyNewInput.style.display = 'block';
-                strategyNewInput.required = true;
-            } else {
-                strategyNewInput.style.display = 'none';
-                strategyNewInput.required = false;
-                strategyNewInput.value = '';
-            }
+{% block scripts %}
+<script>
+    const strategySelect = document.getElementById('strategy_select');
+    const strategyNewInput = document.getElementById('strategy_new');
+
+    function toggleStrategyInput() {
+        if (strategySelect.value === '__new__') {
+            strategyNewInput.style.display = 'block';
+            strategyNewInput.required = true;
+        } else {
+            strategyNewInput.style.display = 'none';
+            strategyNewInput.required = false;
+            strategyNewInput.value = '';
         }
+    }
 
-        strategySelect.addEventListener('change', toggleStrategyInput);
-        // Run on page load in case the browser restores previous value
-        toggleStrategyInput();
+    strategySelect.addEventListener('change', toggleStrategyInput);
+    toggleStrategyInput();
 
-        // Initialize flatpickr on date inputs
-        flatpickr('.datetimepicker', {
-            enableTime: true,
-            dateFormat: 'Y-m-d\\TH:i',
-            allowInput: true,
-        });
-    </script>
+    flatpickr('.datetimepicker', {
+        enableTime: true,
+        dateFormat: 'Y-m-d\\TH:i',
+        allowInput: true,
+    });
+</script>
 {% endblock %} 
