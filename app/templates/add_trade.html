@@ -16,7 +16,7 @@
                 <label for="entry_date" class="form-label mt-4">Entry Date</label>
                 <div class="input-group" id="entryDatePicker" data-td-target-input="nearest" data-td-target-toggle="nearest">
                     <input type="text" class="form-control" id="entry_date" name="entry_date" data-td-target="#entryDatePicker" required />
-                    <span class="input-group-text" data-td-target="#entryDatePicker" data-td-toggle="datetimepicker"><i class="bi bi-calendar3"></i></span>
+                    <span class="input-group-text bg-primary text-white" role="button" data-td-target="#entryDatePicker" data-td-toggle="datetimepicker"><i class="bi bi-calendar3"></i></span>
                 </div>
             </div>
             <div class="form-group">
@@ -38,7 +38,7 @@
                 <label for="exit_date" class="form-label mt-4">Exit Date</label>
                 <div class="input-group" id="exitDatePicker" data-td-target-input="nearest" data-td-target-toggle="nearest">
                     <input type="text" class="form-control" id="exit_date" name="exit_date" data-td-target="#exitDatePicker" />
-                    <span class="input-group-text" data-td-target="#exitDatePicker" data-td-toggle="datetimepicker"><i class="bi bi-calendar3"></i></span>
+                    <span class="input-group-text bg-primary text-white" role="button" data-td-target="#exitDatePicker" data-td-toggle="datetimepicker"><i class="bi bi-calendar3"></i></span>
                 </div>
             </div>
             <div class="form-group">
@@ -93,9 +93,12 @@
             }
         },
         localization: {
-            format: 'yyyy-MM-ddTHH:mm'
+            format: "yyyy-MM-dd'T'HH:mm"
         }
     };
+
+    const now = new Date();
+    commonOpts.defaultDate = now;
 
     if (window.tempusDominus) {
         new tempusDominus.TempusDominus(document.getElementById('entryDatePicker'), commonOpts);
