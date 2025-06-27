@@ -2,10 +2,15 @@ from flask import Flask
 from config import Config
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_login import LoginManager
 import os
 
 db = SQLAlchemy()
 migrate = Migrate()
+login = LoginManager()
+login.login_view = 'auth.login'
+login.login_message = 'Please log in to access this page.'
+login.login_message_category = 'info'
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -21,9 +26,13 @@ def create_app(config_class=Config):
 
     db.init_app(app)
     migrate.init_app(app, db)
+    login.init_app(app)
 
     from app.routes import bp as main_blueprint
     app.register_blueprint(main_blueprint)
+
+    from app.auth.routes import bp as auth_blueprint
+    app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
     from app import models
 

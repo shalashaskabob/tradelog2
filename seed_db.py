@@ -1,7 +1,7 @@
 import random
 import datetime
 from app import create_app, db
-from app.models import Trade, Strategy
+from app.models import User, Trade, Strategy
 
 app = create_app()
 
@@ -18,7 +18,7 @@ def get_or_create_strategy(name):
         db.session.commit()
     return strategy
 
-def random_trade(strategies):
+def random_trade(strategies, user):
     entry_date = datetime.datetime.utcnow() - datetime.timedelta(days=random.randint(0, 365))
     exit_date = entry_date + datetime.timedelta(hours=random.randint(1, 72))
     entry_price = round(random.uniform(100, 5000), 2)
@@ -36,6 +36,7 @@ def random_trade(strategies):
         position_size=position_size,
         direction=direction,
         strategy=random.choice(strategies),
+        trader=user
     )
     trade.pnl = trade.calculate_pnl
     return trade
@@ -46,9 +47,17 @@ if __name__ == '__main__':
         # Clear existing data
         db.session.query(Trade).delete()
         db.session.query(Strategy).delete()
-        print(f"Deleted existing trades and strategies.")
+        db.session.query(User).delete()
+        print(f"Deleted existing trades, strategies, and users.")
         
         db.create_all()
+
+        # Create a default user
+        default_user = User(username='testuser', email='test@example.com')
+        default_user.set_password('password')
+        db.session.add(default_user)
+        db.session.commit()
+        print(f"Created default user: 'testuser' with password 'password'")
 
         # Create strategies
         strategies = []
@@ -58,6 +67,6 @@ if __name__ == '__main__':
 
         to_create = 50
         for _ in range(to_create):
-            db.session.add(random_trade(strategies))
+            db.session.add(random_trade(strategies, default_user))
         db.session.commit()
-        print(f"Added {to_create} trades (total now {Trade.query.count()}).") 
+        print(f"Added {to_create} trades for user '{default_user.username}'.") 

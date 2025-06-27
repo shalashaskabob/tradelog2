@@ -1,4 +1,5 @@
 from flask import render_template, redirect, url_for, request, flash, Blueprint, jsonify
+from flask_login import current_user, login_required
 from app import db
 from app.models import Trade, Strategy
 from datetime import datetime
@@ -12,11 +13,13 @@ bp = Blueprint('main', __name__)
 
 @bp.route('/')
 @bp.route('/index')
+@login_required
 def index():
-    trades = Trade.query.order_by(Trade.entry_date.desc()).all()
+    trades = Trade.query.filter_by(user_id=current_user.id).order_by(Trade.entry_date.desc()).all()
     return render_template('index.html', title='Trade Log', trades=trades)
 
 @bp.route('/add_trade', methods=['GET', 'POST'])
+@login_required
 def add_trade():
     if request.method == 'POST':
         try:
@@ -49,7 +52,8 @@ def add_trade():
                 direction=request.form['direction'],
                 strategy=strategy,
                 notes=request.form.get('notes'),
-                exit_date=exit_date
+                exit_date=exit_date,
+                trader=current_user
             )
             
             if request.form.get('exit_price'):
@@ -67,7 +71,7 @@ def add_trade():
             flash(f'Error adding trade: {e}', 'danger')
 
     # GET request - gather existing strategies
-    strategies = Strategy.query.order_by(Strategy.name).all()
+    strategies = Strategy.query.join(Trade).filter(Trade.user_id == current_user.id).distinct().all()
     return render_template(
         'add_trade.html',
         title='Add Trade',
@@ -76,8 +80,12 @@ def add_trade():
     )
 
 @bp.route('/delete_trade/<int:trade_id>', methods=['POST'])
+@login_required
 def delete_trade(trade_id):
     trade = Trade.query.get_or_404(trade_id)
+    if trade.user_id != current_user.id:
+        flash('You are not authorized to delete this trade.', 'danger')
+        return redirect(url_for('main.index'))
     try:
         db.session.delete(trade)
         db.session.commit()
@@ -88,9 +96,10 @@ def delete_trade(trade_id):
     return redirect(url_for('main.index'))
 
 @bp.route('/clear_log', methods=['POST'])
+@login_required
 def clear_log():
     try:
-        num_rows_deleted = db.session.query(Trade).delete()
+        num_rows_deleted = Trade.query.filter_by(user_id=current_user.id).delete()
         db.session.commit()
         flash(f'Successfully deleted {num_rows_deleted} trades.', 'success')
     except Exception as e:
@@ -121,8 +130,9 @@ def add_strategy():
 # ---------------------- Statistics ----------------------
 
 @bp.route('/statistics')
+@login_required
 def statistics():
-    trades = Trade.query.order_by(Trade.entry_date).all()
+    trades = Trade.query.filter_by(user_id=current_user.id).order_by(Trade.entry_date).all()
     if not trades:
         return render_template('statistics.html', title='Statistics', no_trades=True)
 
