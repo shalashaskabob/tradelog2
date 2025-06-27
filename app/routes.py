@@ -3,6 +3,7 @@ from flask_login import current_user, login_required
 from app import db
 from app.models import Trade, Strategy
 from datetime import datetime
+from app.forms import ChangePasswordForm
 
 FUTURES_SYMBOLS = [
     'MNQ', 'NQ', 'MES', 'ES', 'RTY', 'M2K', 'CL', 'MCL', 'GC', 'MGC', 'SI', 
@@ -15,8 +16,8 @@ bp = Blueprint('main', __name__)
 @bp.route('/index')
 @login_required
 def index():
-    trades = Trade.query.filter_by(user_id=current_user.id).order_by(Trade.entry_date.desc()).all()
-    return render_template('index.html', title='Trade Log', trades=trades)
+    trades = Trade.query.filter_by(trader=current_user).order_by(Trade.entry_date.desc()).all()
+    return render_template('index.html', title='Home', trades=trades)
 
 @bp.route('/add_trade', methods=['GET', 'POST'])
 @login_required
@@ -248,3 +249,17 @@ def statistics():
         short_losses=short_losses,
         short_be=short_be
     ) 
+
+@bp.route('/change-password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    form = ChangePasswordForm()
+    if form.validate_on_submit():
+        if current_user.check_password(form.current_password.data):
+            current_user.set_password(form.new_password.data)
+            db.session.commit()
+            flash('Your password has been changed successfully.', 'success')
+            return redirect(url_for('main.index'))
+        else:
+            flash('Invalid current password.', 'danger')
+    return render_template('change_password.html', title='Change Password', form=form) 
