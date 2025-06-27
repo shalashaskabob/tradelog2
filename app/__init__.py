@@ -28,16 +28,13 @@ def create_app(config_class=Config):
     migrate.init_app(app, db)
     login.init_app(app)
 
+    # Import models here so that they are registered with SQLAlchemy
+    from app import models
+
     from app.routes import bp as main_blueprint
     app.register_blueprint(main_blueprint)
 
     from app.auth.routes import bp as auth_blueprint
     app.register_blueprint(auth_blueprint, url_prefix='/auth')
-
-    from app import models
-
-    # Create tables if they do not exist (helps first-time deployments)
-    with app.app_context():
-        db.create_all()
 
     return app 
