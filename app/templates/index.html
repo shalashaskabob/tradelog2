@@ -34,7 +34,7 @@
                         <td class="{{ 'text-success' if trade.pnl > 0 else 'text-danger' if trade.pnl < 0 else '' }}">
                             {{ "%.2f"|format(trade.pnl) if trade.pnl is not none else '' }}
                         </td>
-                        <td>{{ trade.strategy }}</td>
+                        <td>{{ trade.strategy.name }}</td>
                         <td>{{ trade.notes }}</td>
                     </tr>
                 {% else %}

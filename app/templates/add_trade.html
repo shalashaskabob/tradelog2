@@ -44,8 +44,8 @@
                 <div id="strategy-picker" class="d-flex flex-wrap gap-2">
                     {% for strat in strategies %}
                         <div class="form-check">
-                            <input type="radio" class="form-check-input" name="strategy_choice" id="strat-{{ loop.index }}" value="{{ strat }}" required>
-                            <label class="form-check-label btn btn-outline-info" for="strat-{{ loop.index }}">{{ strat }}</label>
+                            <input type="radio" class="form-check-input" name="strategy_choice" id="strat-{{ strat.id }}" value="{{ strat.name }}" required>
+                            <label class="form-check-label btn btn-outline-info" for="strat-{{ strat.id }}">{{ strat.name }}</label>
                         </div>
                     {% endfor %}
                     <div class="form-check">
@@ -100,34 +100,52 @@
     addStrategyBtn.addEventListener('click', () => {
         const newStrategyName = newStrategyInput.value.trim();
         if (newStrategyName) {
-            // Create the new radio button and label
-            const newIndex = strategyPicker.querySelectorAll('.form-check').length;
-            const newFormCheck = document.createElement('div');
-            newFormCheck.className = 'form-check';
+            fetch('{{ url_for("main.add_strategy") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name: newStrategyName }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const newStrategy = data;
+                    // Create the new radio button and label
+                    const newFormCheck = document.createElement('div');
+                    newFormCheck.className = 'form-check';
 
-            const newRadio = document.createElement('input');
-            newRadio.type = 'radio';
-            newRadio.className = 'form-check-input';
-            newRadio.name = 'strategy_choice';
-            newRadio.id = `strat-${newIndex}`;
-            newRadio.value = newStrategyName;
-            newRadio.required = true;
+                    const newRadio = document.createElement('input');
+                    newRadio.type = 'radio';
+                    newRadio.className = 'form-check-input';
+                    newRadio.name = 'strategy_choice';
+                    newRadio.id = `strat-${newStrategy.id}`;
+                    newRadio.value = newStrategy.name;
+                    newRadio.required = true;
 
-            const newLabel = document.createElement('label');
-            newLabel.className = 'form-check-label btn btn-outline-info';
-            newLabel.htmlFor = newRadio.id;
-            newLabel.textContent = newStrategyName;
+                    const newLabel = document.createElement('label');
+                    newLabel.className = 'form-check-label btn btn-outline-info';
+                    newLabel.htmlFor = newRadio.id;
+                    newLabel.textContent = newStrategy.name;
 
-            newFormCheck.appendChild(newRadio);
-            newFormCheck.appendChild(newLabel);
+                    newFormCheck.appendChild(newRadio);
+                    newFormCheck.appendChild(newLabel);
 
-            // Insert before the '+ Add New' button's container
-            strategyPicker.insertBefore(newFormCheck, newStratToggle.parentElement);
+                    // Insert before the '+ Add New' button's container
+                    strategyPicker.insertBefore(newFormCheck, newStratToggle.parentElement);
 
-            // Select the new button and hide the input
-            newRadio.checked = true;
-            newStrategyGroup.style.display = 'none';
-            newStrategyInput.value = '';
+                    // Select the new button and hide the input
+                    newRadio.checked = true;
+                    newStrategyGroup.style.display = 'none';
+                    newStrategyInput.value = '';
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while adding the strategy.');
+            });
         }
     });
 </script>

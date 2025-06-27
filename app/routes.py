@@ -1,10 +1,11 @@
-from flask import render_template, redirect, url_for, request, flash, Blueprint
+from flask import render_template, redirect, url_for, request, flash, Blueprint, jsonify
 from app import db
-from app.models import Trade
+from app.models import Trade, Strategy
 from datetime import datetime
 
 FUTURES_SYMBOLS = [
-    'MNQ', 'NQ', 'MES', 'ES', 'GC', 'MGC'
+    'MNQ', 'NQ', 'MES', 'ES', 'RTY', 'M2K', 'CL', 'MCL', 'GC', 'MGC', 'SI', 
+    'SIL', 'HG', 'PA', 'PL', 'ZB', 'ZN', 'ZF', 'ZT', 'GE', 'BTC', 'MBT'
 ]
 
 bp = Blueprint('main', __name__)
@@ -25,20 +26,28 @@ def add_trade():
             if request.form.get('exit_date'):
                 exit_date = datetime.strptime(request.form['exit_date'], '%Y-%m-%dT%H:%M')
 
-            # Determine strategy
-            strategy_value = request.form.get('strategy_choice')
+            # --- Strategy Handling ---
+            strategy_name = request.form.get('strategy_choice')
+            if strategy_name == '__new__':
+                strategy_name = request.form.get('strategy_new_input')
 
-            # If the user clicks '+ Add New' but doesn't create one, this prevents an error
-            if strategy_value == '__new__':
-                strategy_value = request.form.get('strategy_new_input') or 'Unspecified'
+            if not strategy_name:
+                flash('Strategy name cannot be empty.', 'danger')
+                return redirect(url_for('main.add_trade'))
 
+            strategy = Strategy.query.filter_by(name=strategy_name).first()
+            if not strategy:
+                strategy = Strategy(name=strategy_name)
+                db.session.add(strategy)
+                # We don't commit here, let the trade commit handle it
+            
             new_trade = Trade(
                 ticker=request.form['ticker'],
                 entry_date=entry_date,
                 entry_price=float(request.form['entry_price']),
                 position_size=float(request.form['position_size']),
                 direction=request.form['direction'],
-                strategy=strategy_value,
+                strategy=strategy,
                 notes=request.form.get('notes'),
                 exit_date=exit_date
             )
@@ -46,12 +55,8 @@ def add_trade():
             if request.form.get('exit_price'):
                 new_trade.exit_price = float(request.form.get('exit_price'))
             
-            # Calculate PnL before saving
-            if new_trade.exit_price and new_trade.exit_date:
-                if new_trade.direction.lower() == 'long':
-                    new_trade.pnl = (new_trade.exit_price - new_trade.entry_price) * new_trade.position_size
-                else:
-                    new_trade.pnl = (new_trade.entry_price - new_trade.exit_price) * new_trade.position_size
+            # Set PnL using the model's calculation property
+            new_trade.pnl = new_trade.calculate_pnl
 
             db.session.add(new_trade)
             db.session.commit()
@@ -61,15 +66,34 @@ def add_trade():
             db.session.rollback()
             flash(f'Error adding trade: {e}', 'danger')
 
-    # GET request - gather existing strategies for dropdown
-    strategies = [row[0] for row in db.session.query(Trade.strategy).distinct().all() if row[0]]
-    strategies.sort()
+    # GET request - gather existing strategies
+    strategies = Strategy.query.order_by(Strategy.name).all()
     return render_template(
         'add_trade.html',
         title='Add Trade',
         strategies=strategies,
         symbols=FUTURES_SYMBOLS,
     )
+
+@bp.route('/add_strategy', methods=['POST'])
+def add_strategy():
+    data = request.get_json()
+    if not data or 'name' not in data or not data['name'].strip():
+        return jsonify({'success': False, 'message': 'Invalid strategy name.'}), 400
+    
+    name = data['name'].strip()
+    
+    if Strategy.query.filter_by(name=name).first():
+        return jsonify({'success': False, 'message': 'Strategy already exists.'}), 409
+
+    try:
+        new_strategy = Strategy(name=name)
+        db.session.add(new_strategy)
+        db.session.commit()
+        return jsonify({'success': True, 'id': new_strategy.id, 'name': new_strategy.name})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 # ---------------------- Statistics ----------------------
 
