@@ -75,6 +75,29 @@ def add_trade():
         symbols=FUTURES_SYMBOLS,
     )
 
+@bp.route('/delete_trade/<int:trade_id>', methods=['POST'])
+def delete_trade(trade_id):
+    trade = Trade.query.get_or_404(trade_id)
+    try:
+        db.session.delete(trade)
+        db.session.commit()
+        flash('Trade deleted successfully.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting trade: {e}', 'danger')
+    return redirect(url_for('main.index'))
+
+@bp.route('/clear_log', methods=['POST'])
+def clear_log():
+    try:
+        num_rows_deleted = db.session.query(Trade).delete()
+        db.session.commit()
+        flash(f'Successfully deleted {num_rows_deleted} trades.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error clearing trade log: {e}', 'danger')
+    return redirect(url_for('main.index'))
+
 @bp.route('/add_strategy', methods=['POST'])
 def add_strategy():
     data = request.get_json()

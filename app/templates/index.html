@@ -1,29 +1,35 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mt-4">
         <h1>Trade Log</h1>
-        <a href="{{ url_for('main.add_trade') }}" class="btn btn-success">Add New Trade</a>
+        <div>
+            <a href="{{ url_for('main.add_trade') }}" class="btn btn-primary">Add Trade</a>
+            <form action="{{ url_for('main.clear_log') }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete ALL trades? This action cannot be undone.');">
+                <button type="submit" class="btn btn-danger">Clear All Trades</button>
+            </form>
+        </div>
     </div>
-    <div class="table-responsive">
-        <table class="table table-hover">
+    <div class="table-responsive mt-3">
+        <table class="table table-dark table-striped table-hover">
             <thead>
                 <tr>
-                    <th scope="col">Ticker</th>
-                    <th scope="col">Entry Date</th>
-                    <th scope="col">Entry Price</th>
-                    <th scope="col">Direction</th>
-                    <th scope="col">Position Size</th>
-                    <th scope="col">Exit Date</th>
-                    <th scope="col">Exit Price</th>
-                    <th scope="col">PnL</th>
-                    <th scope="col">Strategy</th>
-                    <th scope="col">Notes</th>
+                    <th>Ticker</th>
+                    <th>Entry Date</th>
+                    <th>Entry Price</th>
+                    <th>Direction</th>
+                    <th>Position Size</th>
+                    <th>Exit Date</th>
+                    <th>Exit Price</th>
+                    <th>PnL</th>
+                    <th>Strategy</th>
+                    <th>Notes</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for trade in trades %}
-                    <tr class="table-secondary">
+                    <tr>
                         <td>{{ trade.ticker }}</td>
                         <td>{{ trade.entry_date.strftime('%Y-%m-%d %H:%M') }}</td>
                         <td>{{ "%.2f"|format(trade.entry_price) }}</td>
@@ -36,10 +42,15 @@
                         </td>
                         <td>{{ trade.strategy.name }}</td>
                         <td>{{ trade.notes }}</td>
+                        <td>
+                            <form action="{{ url_for('main.delete_trade', trade_id=trade.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this trade?');">
+                                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                            </form>
+                        </td>
                     </tr>
                 {% else %}
                     <tr>
-                        <td colspan="10" class="text-center">No trades found.</td>
+                        <td colspan="11" class="text-center">No trades found.</td>
                     </tr>
                 {% endfor %}
             </tbody>
