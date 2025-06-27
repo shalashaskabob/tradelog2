@@ -14,9 +14,9 @@
             </div>
             <div class="form-group">
                 <label for="entry_date" class="form-label mt-4">Entry Date</label>
-                <div class="input-group" id="entryDatePicker" data-td-target-input="nearest" data-td-target-toggle="nearest">
-                    <input type="text" class="form-control" id="entry_date" name="entry_date" data-td-target="#entryDatePicker" required />
-                    <span class="input-group-text bg-primary text-white" role="button" data-td-target="#entryDatePicker" data-td-toggle="datetimepicker"><i class="bi bi-calendar3"></i></span>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="entry_date" name="entry_date" required />
+                    <span class="input-group-text bg-primary text-white" id="entry_btn" role="button"><i class="bi bi-calendar3"></i></span>
                 </div>
             </div>
             <div class="form-group">
@@ -36,9 +36,9 @@
             </div>
             <div class="form-group">
                 <label for="exit_date" class="form-label mt-4">Exit Date</label>
-                <div class="input-group" id="exitDatePicker" data-td-target-input="nearest" data-td-target-toggle="nearest">
-                    <input type="text" class="form-control" id="exit_date" name="exit_date" data-td-target="#exitDatePicker" />
-                    <span class="input-group-text bg-primary text-white" role="button" data-td-target="#exitDatePicker" data-td-toggle="datetimepicker"><i class="bi bi-calendar3"></i></span>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="exit_date" name="exit_date" />
+                    <span class="input-group-text bg-primary text-white" id="exit_btn" role="button"><i class="bi bi-calendar3"></i></span>
                 </div>
             </div>
             <div class="form-group">
@@ -85,27 +85,24 @@
     toggleStrategyInput();
 
     const commonOpts = {
-        display: {
-            theme: 'dark',
-            components: {
-                calendar: true,
-                decades: true, year: true, month: true, date: true,
-                clock: true, hours: true, minutes: true, seconds: false
-            }
-        },
-        localization: {
-            format: "yyyy-MM-dd'T'HH:mm"
-        }
+        singleMode: true,
+        lang: 'en-US',
+        format: 'YYYY-MM-DDTHH:mm',
+        plugins: ['TimePicker'],
+        theme: 'dark',
+        position: 'bottom',
     };
 
-    const now = new Date();
-    commonOpts.defaultDate = now;
+    const entryPicker = new Litepicker({
+        ...commonOpts,
+        element: document.getElementById('entry_date'),
+        button: document.getElementById('entry_btn'),
+    });
 
-    if (window.tempusDominus) {
-        new tempusDominus.TempusDominus(document.getElementById('entryDatePicker'), commonOpts);
-        new tempusDominus.TempusDominus(document.getElementById('exitDatePicker'), commonOpts);
-    } else {
-        console.error('tempusDominus library not loaded');
-    }
+    const exitPicker = new Litepicker({
+        ...commonOpts,
+        element: document.getElementById('exit_date'),
+        button: document.getElementById('exit_btn'),
+    });
 </script>
 {% endblock %} 

@@ -6,8 +6,8 @@
     <title>{{ title }} - Trade Tracker</title>
     <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/cyborg/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <!-- Tempus Dominus (Bootstrap 5) date/time picker -->
-    <link href="https://cdn.jsdelivr.net/npm/@eonasdan/tempus-dominus@6.7.7/dist/css/tempus-dominus.min.css" rel="stylesheet">
+    <!-- Litepicker date/time picker -->
+    <link href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   </head>
   <body>
@@ -45,9 +45,8 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-    <!-- Tempus Dominus UMD bundle (depends on Popper which is already in bootstrap bundle) -->
-    <script src="https://cdn.jsdelivr.net/npm/@eonasdan/tempus-dominus@6.7.7/dist/js/tempus-dominus.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+    <!-- Litepicker bundle (includes TimePicker plugin) -->
+    <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/bundle.js"></script>
     {% block scripts %}{% endblock %}
   </body>
 </html> 
