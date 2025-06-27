@@ -37,4 +37,7 @@ def create_app(config_class=Config):
     from app.auth.routes import bp as auth_blueprint
     app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
+    from app import cli
+    cli.register_commands(app)
+
     return app 
