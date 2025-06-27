@@ -26,13 +26,11 @@ def add_trade():
                 exit_date = datetime.strptime(request.form['exit_date'], '%Y-%m-%dT%H:%M')
 
             # Determine strategy
-            selected_strategy = request.form.get('strategy_choice')
-            strategy_value = None
-            if selected_strategy == "__new__":
-                # user provided new strategy in separate field
-                strategy_value = request.form.get('strategy_new').strip() if request.form.get('strategy_new') else None
-            else:
-                strategy_value = selected_strategy
+            strategy_value = request.form.get('strategy_choice')
+
+            # If the user clicks '+ Add New' but doesn't create one, this prevents an error
+            if strategy_value == '__new__':
+                strategy_value = request.form.get('strategy_new_input') or 'Unspecified'
 
             new_trade = Trade(
                 ticker=request.form['ticker'],

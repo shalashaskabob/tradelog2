@@ -49,11 +49,14 @@
                         </div>
                     {% endfor %}
                     <div class="form-check">
-                        <input type="radio" class="form-check-input" name="strategy_choice" id="strat-new" value="__new__" required>
-                        <label class="form-check-label btn btn-outline-success" for="strat-new">+ Add New</label>
+                        <input type="radio" class="form-check-input" name="strategy_choice" id="strat-new-toggle" value="__new__" required>
+                        <label class="form-check-label btn btn-outline-success" for="strat-new-toggle">+ Add New</label>
                     </div>
                 </div>
-                <input type="text" class="form-control mt-2" id="strategy_new_input" name="strategy_new" placeholder="Enter new strategy name" style="display: none;">
+                <div class="input-group mt-2" id="strategy_new_group" style="display: none;">
+                    <input type="text" class="form-control" id="strategy_new_input" placeholder="Enter new strategy name">
+                    <button class="btn btn-success" type="button" id="add_strategy_btn">Add</button>
+                </div>
             </div>
             <div class="form-group">
                 <label for="notes" class="form-label mt-4">Notes</label>
@@ -66,29 +69,66 @@
 
 {% block scripts %}
 <script>
+    // --- Exit Date Defaulting ---
+    const entryDateInput = document.getElementById('entry_date');
+    const exitDateInput = document.getElementById('exit_date');
+
+    entryDateInput.addEventListener('input', () => {
+        if (entryDateInput.value) {
+            exitDateInput.value = entryDateInput.value;
+        }
+    });
+
     // --- Strategy Picker Logic ---
     const strategyPicker = document.getElementById('strategy-picker');
+    const newStrategyGroup = document.getElementById('strategy_new_group');
     const newStrategyInput = document.getElementById('strategy_new_input');
+    const addStrategyBtn = document.getElementById('add_strategy_btn');
+    const newStratToggle = document.getElementById('strat-new-toggle');
 
     strategyPicker.addEventListener('change', (event) => {
         if (event.target.name === 'strategy_choice') {
             if (event.target.value === '__new__') {
-                newStrategyInput.style.display = 'block';
-                newStrategyInput.required = true;
+                newStrategyGroup.style.display = 'flex';
                 newStrategyInput.focus();
             } else {
-                newStrategyInput.style.display = 'none';
-                newStrategyInput.required = false;
-                newStrategyInput.value = '';
+                newStrategyGroup.style.display = 'none';
             }
         }
     });
 
-    // Set initial state on page load
-    const initialSelection = document.querySelector('input[name="strategy_choice"]:checked');
-    if (!initialSelection) {
-        newStrategyInput.style.display = 'none';
-        newStrategyInput.required = false;
-    }
+    addStrategyBtn.addEventListener('click', () => {
+        const newStrategyName = newStrategyInput.value.trim();
+        if (newStrategyName) {
+            // Create the new radio button and label
+            const newIndex = strategyPicker.querySelectorAll('.form-check').length;
+            const newFormCheck = document.createElement('div');
+            newFormCheck.className = 'form-check';
+
+            const newRadio = document.createElement('input');
+            newRadio.type = 'radio';
+            newRadio.className = 'form-check-input';
+            newRadio.name = 'strategy_choice';
+            newRadio.id = `strat-${newIndex}`;
+            newRadio.value = newStrategyName;
+            newRadio.required = true;
+
+            const newLabel = document.createElement('label');
+            newLabel.className = 'form-check-label btn btn-outline-info';
+            newLabel.htmlFor = newRadio.id;
+            newLabel.textContent = newStrategyName;
+
+            newFormCheck.appendChild(newRadio);
+            newFormCheck.appendChild(newLabel);
+
+            // Insert before the '+ Add New' button's container
+            strategyPicker.insertBefore(newFormCheck, newStratToggle.parentElement);
+
+            // Select the new button and hide the input
+            newRadio.checked = true;
+            newStrategyGroup.style.display = 'none';
+            newStrategyInput.value = '';
+        }
+    });
 </script>
 {% endblock %} 
