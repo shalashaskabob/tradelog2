@@ -26,7 +26,7 @@ def add_trade():
                 exit_date = datetime.strptime(request.form['exit_date'], '%Y-%m-%dT%H:%M')
 
             # Determine strategy
-            selected_strategy = request.form.get('strategy')
+            selected_strategy = request.form.get('strategy_choice')
             strategy_value = None
             if selected_strategy == "__new__":
                 # user provided new strategy in separate field

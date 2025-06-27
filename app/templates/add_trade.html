@@ -40,15 +40,20 @@
                 <input type="number" step="any" class="form-control" id="exit_price" name="exit_price">
             </div>
             <div class="form-group">
-                <label for="strategy_select" class="form-label mt-4">Strategy</label>
-                <select class="form-select" id="strategy_select" name="strategy">
-                    <option value="" selected disabled>-- Select strategy --</option>
+                <label class="form-label mt-4">Strategy</label>
+                <div id="strategy-picker" class="d-flex flex-wrap gap-2">
                     {% for strat in strategies %}
-                        <option value="{{ strat }}">{{ strat }}</option>
+                        <div class="form-check">
+                            <input type="radio" class="form-check-input" name="strategy_choice" id="strat-{{ loop.index }}" value="{{ strat }}" required>
+                            <label class="form-check-label btn btn-outline-info" for="strat-{{ loop.index }}">{{ strat }}</label>
+                        </div>
                     {% endfor %}
-                    <option value="__new__">+ Add new strategy</option>
-                </select>
-                <input type="text" class="form-control mt-2" id="strategy_new" name="strategy_new" placeholder="Enter new strategy name" style="display:none;">
+                    <div class="form-check">
+                        <input type="radio" class="form-check-input" name="strategy_choice" id="strat-new" value="__new__" required>
+                        <label class="form-check-label btn btn-outline-success" for="strat-new">+ Add New</label>
+                    </div>
+                </div>
+                <input type="text" class="form-control mt-2" id="strategy_new_input" name="strategy_new" placeholder="Enter new strategy name" style="display: none;">
             </div>
             <div class="form-group">
                 <label for="notes" class="form-label mt-4">Notes</label>
@@ -61,21 +66,29 @@
 
 {% block scripts %}
 <script>
-    const strategySelect = document.getElementById('strategy_select');
-    const strategyNewInput = document.getElementById('strategy_new');
+    // --- Strategy Picker Logic ---
+    const strategyPicker = document.getElementById('strategy-picker');
+    const newStrategyInput = document.getElementById('strategy_new_input');
 
-    function toggleStrategyInput() {
-        if (strategySelect.value === '__new__') {
-            strategyNewInput.style.display = 'block';
-            strategyNewInput.required = true;
-        } else {
-            strategyNewInput.style.display = 'none';
-            strategyNewInput.required = false;
-            strategyNewInput.value = '';
+    strategyPicker.addEventListener('change', (event) => {
+        if (event.target.name === 'strategy_choice') {
+            if (event.target.value === '__new__') {
+                newStrategyInput.style.display = 'block';
+                newStrategyInput.required = true;
+                newStrategyInput.focus();
+            } else {
+                newStrategyInput.style.display = 'none';
+                newStrategyInput.required = false;
+                newStrategyInput.value = '';
+            }
         }
-    }
+    });
 
-    strategySelect.addEventListener('change', toggleStrategyInput);
-    toggleStrategyInput();
+    // Set initial state on page load
+    const initialSelection = document.querySelector('input[name="strategy_choice"]:checked');
+    if (!initialSelection) {
+        newStrategyInput.style.display = 'none';
+        newStrategyInput.required = false;
+    }
 </script>
 {% endblock %} 
