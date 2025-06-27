@@ -14,10 +14,7 @@
             </div>
             <div class="form-group">
                 <label for="entry_date" class="form-label mt-4">Entry Date</label>
-                <div class="input-group">
-                    <input type="text" class="form-control" id="entry_date" name="entry_date" required />
-                    <span class="input-group-text bg-primary text-white" id="entry_btn" role="button"><i class="bi bi-calendar3"></i></span>
-                </div>
+                <input type="datetime-local" class="form-control" id="entry_date" name="entry_date" required>
             </div>
             <div class="form-group">
                 <label for="entry_price" class="form-label mt-4">Entry Price</label>
@@ -36,10 +33,7 @@
             </div>
             <div class="form-group">
                 <label for="exit_date" class="form-label mt-4">Exit Date</label>
-                <div class="input-group">
-                    <input type="text" class="form-control" id="exit_date" name="exit_date" />
-                    <span class="input-group-text bg-primary text-white" id="exit_btn" role="button"><i class="bi bi-calendar3"></i></span>
-                </div>
+                <input type="datetime-local" class="form-control" id="exit_date" name="exit_date">
             </div>
             <div class="form-group">
                 <label for="exit_price" class="form-label mt-4">Exit Price</label>
@@ -83,24 +77,5 @@
 
     strategySelect.addEventListener('change', toggleStrategyInput);
     toggleStrategyInput();
-
-    const commonOpts = {
-        singleMode: true,
-        lang: 'en-US',
-        format: 'YYYY-MM-DDTHH:mm',
-        plugins: ['TimePicker'],
-        theme: 'dark',
-        position: 'bottom',
-    };
-
-    const entryPicker = new Litepicker({
-        element: document.getElementById('entry_date'),
-        ...commonOpts
-    });
-
-    const exitPicker = new Litepicker({
-        element: document.getElementById('exit_date'),
-        ...commonOpts
-    });
 </script>
 {% endblock %} 
