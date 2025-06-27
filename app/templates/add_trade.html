@@ -94,15 +94,13 @@
     };
 
     const entryPicker = new Litepicker({
-        ...commonOpts,
         element: document.getElementById('entry_date'),
-        button: document.getElementById('entry_btn'),
+        ...commonOpts
     });
 
     const exitPicker = new Litepicker({
-        ...commonOpts,
         element: document.getElementById('exit_date'),
-        button: document.getElementById('exit_btn'),
+        ...commonOpts
     });
 </script>
 {% endblock %} 
