@@ -1,61 +1,235 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Statistics</h1>
-<div class="row mb-4">
-  <div class="col-md-4">
-    <div class="card text-bg-dark mb-3">
-      <div class="card-header">Total Trades</div>
-      <div class="card-body"><h4 class="card-title">{{ total_trades }}</h4></div>
-    </div>
-  </div>
-  <div class="col-md-4">
-    <div class="card text-bg-dark mb-3">
-      <div class="card-header">Win Rate</div>
-      <div class="card-body"><h4 class="card-title">{{ win_rate }}%</h4></div>
-    </div>
-  </div>
-  <div class="col-md-4">
-    <div class="card text-bg-dark mb-3">
-      <div class="card-header">Average PnL</div>
-      <div class="card-body"><h4 class="card-title">{{ avg_pnl }}</h4></div>
-    </div>
-  </div>
-</div>
+<div class="container-fluid">
+    <h1 class="mt-4">Trade Statistics</h1>
 
-<div class="mb-5">
-  <h3>Cumulative PnL</h3>
-  <div id="cumulative_chart" style="height:400px;"></div>
-</div>
+    {% if no_trades %}
+    <div class="alert alert-warning mt-4" role="alert">
+        No trades found. Add some trades to see your statistics.
+    </div>
+    {% else %}
+    <!-- Key Metrics Row -->
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card border-primary h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Total PnL</h5>
+                    <p class="card-text fs-4 {{ 'text-success' if total_pnl >= 0 else 'text-danger' }}">{{ "%.2f"|format(total_pnl) }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Profit Factor</h5>
+                    <p class="card-text fs-4">{{ "%.2f"|format(profit_factor) }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Win Rate</h5>
+                    <p class="card-text fs-4">{{ "%.2f"|format(win_rate) }}%</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-secondary h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Total Trades</h5>
+                    <p class="card-text fs-4">{{ total_trades }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<div class="mb-5">
-  <h3>PnL by Symbol</h3>
-  <div id="symbol_bar" style="height:400px;"></div>
-</div>
+    <!-- Detailed Stats Row -->
+    <div class="row mt-4">
+        <!-- PnL Stats -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header">PnL Details</div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Avg. Winning Trade <span class="badge bg-success rounded-pill">{{ "%.2f"|format(avg_win) }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Avg. Losing Trade <span class="badge bg-danger rounded-pill">{{ "%.2f"|format(avg_loss) }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Largest Win <span class="badge bg-success rounded-pill">{{ "%.2f"|format(largest_win.pnl) if largest_win else 'N/A' }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Largest Loss <span class="badge bg-danger rounded-pill">{{ "%.2f"|format(largest_loss.pnl) if largest_loss else 'N/A' }}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <!-- Directional Stats -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header">Performance by Direction</div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Long Win Rate <span class="badge bg-info rounded-pill">{{ "%.2f"|format(long_win_rate) }}%</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Short Win Rate <span class="badge bg-info rounded-pill">{{ "%.2f"|format(short_win_rate) }}%</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <!-- Other Stats -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header">General</div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Avg. Holding Time <span class="badge bg-secondary rounded-pill">{{ "%.2f"|format(avg_holding_time_seconds / 3600) }} hrs</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Most Traded Symbol <span class="badge bg-secondary rounded-pill">{{ most_traded_symbol }}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
 
-<!-- Plotly -->
-<script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <!-- Charts Row -->
+    <div class="row mt-4">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Cumulative PnL Over Time</h5>
+                    <div id="cumulative-chart"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total PnL by Symbol</h5>
+                    <div id="pnl-by-symbol-chart"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total PnL by Strategy</h5>
+                    <div id="pnl-by-strategy-chart"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+     <div class="row mt-4 mb-4">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Trade Outcomes by Direction</h5>
+                    <div id="outcomes-by-direction-chart"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+{% if not no_trades %}
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const dates = {{ dates | tojson }};
-    const cumulative = {{ cumulative | tojson }};
-    const symbolNames = {{ symbol_names | tojson }};
-    const symbolPnls = {{ symbol_pnls | tojson }};
+    // Chart 1: Cumulative PnL
+    var cumulativeTrace = {
+        x: {{ dates | tojson | safe }},
+        y: {{ cumulative_pnl | tojson | safe }},
+        type: 'scatter',
+        mode: 'lines+markers',
+        line: { color: '#00BFFF' }
+    };
+    var cumulativeLayout = {
+        paper_bgcolor: '#222',
+        plot_bgcolor: '#222',
+        font: { color: '#fff' },
+        xaxis: { gridcolor: '#444' },
+        yaxis: { gridcolor: '#444' }
+    };
+    Plotly.newPlot('cumulative-chart', [cumulativeTrace], cumulativeLayout);
 
-    Plotly.newPlot('cumulative_chart', [{
-      x: dates,
-      y: cumulative,
-      type: 'scatter',
-      mode: 'lines+markers',
-      line: {color: '#4caf50'}
-    }], {margin: {t:40}});
+    // Chart 2: PnL by Symbol
+    var pnlBySymbolTrace = {
+        x: {{ symbol_names | tojson | safe }},
+        y: {{ symbol_pnls | tojson | safe }},
+        type: 'bar',
+        marker: { color: '#1E90FF' }
+    };
+    var pnlBySymbolLayout = {
+        paper_bgcolor: '#222',
+        plot_bgcolor: '#222',
+        font: { color: '#fff' },
+        xaxis: { gridcolor: '#444' },
+        yaxis: { gridcolor: '#444' }
+    };
+    Plotly.newPlot('pnl-by-symbol-chart', [pnlBySymbolTrace], pnlBySymbolLayout);
 
-    Plotly.newPlot('symbol_bar', [{
-      x: symbolNames,
-      y: symbolPnls,
-      type: 'bar',
-      marker: {color: '#2196f3'}
-    }], {margin:{t:40}});
-  });
+    // Chart 3: PnL by Strategy
+    var pnlByStrategyTrace = {
+        x: {{ strategy_names | tojson | safe }},
+        y: {{ strategy_pnls | tojson | safe }},
+        type: 'bar',
+        marker: { color: '#32CD32' }
+    };
+    var pnlByStrategyLayout = {
+        paper_bgcolor: '#222',
+        plot_bgcolor: '#222',
+        font: { color: '#fff' },
+        xaxis: { gridcolor: '#444' },
+        yaxis: { gridcolor: '#444' }
+    };
+    Plotly.newPlot('pnl-by-strategy-chart', [pnlByStrategyTrace], pnlByStrategyLayout);
+    
+    // Chart 4: Outcomes by Direction
+    var traceWins = {
+        x: ['Long', 'Short'],
+        y: [{{ long_wins }}, {{ short_wins }}],
+        name: 'Wins',
+        type: 'bar',
+        marker: { color: '#28a745' }
+    };
+    var traceLosses = {
+        x: ['Long', 'Short'],
+        y: [{{ long_losses }}, {{ short_losses }}],
+        name: 'Losses',
+        type: 'bar',
+        marker: { color: '#dc3545' }
+    };
+    var traceBE = {
+        x: ['Long', 'Short'],
+        y: [{{ long_be }}, {{ short_be }}],
+        name: 'Breakeven',
+        type: 'bar',
+        marker: { color: '#6c757d' }
+    };
+
+    var outcomesData = [traceWins, traceLosses, traceBE];
+    var outcomesLayout = {
+        barmode: 'group',
+        paper_bgcolor: '#222',
+        plot_bgcolor: '#222',
+        font: { color: '#fff' },
+        xaxis: { gridcolor: '#444' },
+        yaxis: { gridcolor: '#444', title: 'Number of Trades' }
+    };
+    Plotly.newPlot('outcomes-by-direction-chart', outcomesData, outcomesLayout);
+
 </script>
+{% endif %}
 {% endblock %} 

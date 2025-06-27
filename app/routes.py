@@ -100,40 +100,112 @@ def add_strategy():
 @bp.route('/statistics')
 def statistics():
     trades = Trade.query.order_by(Trade.entry_date).all()
+    if not trades:
+        return render_template('statistics.html', title='Statistics', no_trades=True)
 
-    total = len(trades)
-    winning = sum(1 for t in trades if t.pnl is not None and t.pnl > 0)
-    losing = sum(1 for t in trades if t.pnl is not None and t.pnl < 0)
-    win_rate = round((winning / total) * 100, 2) if total else 0
-    avg_pnl = round(sum(t.pnl or 0 for t in trades) / total, 2) if total else 0
+    # --- Basic Stats ---
+    total_trades = len(trades)
+    winning_trades = [t for t in trades if t.pnl is not None and t.pnl > 0]
+    losing_trades = [t for t in trades if t.pnl is not None and t.pnl < 0]
+    breakeven_trades = [t for t in trades if t.pnl is not None and t.pnl == 0]
 
-    cumulative = []
-    cum = 0
+    total_wins = len(winning_trades)
+    total_losses = len(losing_trades)
+    win_rate = (total_wins / total_trades) * 100 if total_trades > 0 else 0
+
+    # --- PnL Stats ---
+    all_pnl = [t.pnl for t in trades if t.pnl is not None]
+    total_pnl = sum(all_pnl)
+    gross_profit = sum(t.pnl for t in winning_trades)
+    gross_loss = sum(t.pnl for t in losing_trades)
+    
+    profit_factor = abs(gross_profit / gross_loss) if gross_loss != 0 else float('inf')
+    avg_win = gross_profit / total_wins if total_wins > 0 else 0
+    avg_loss = gross_loss / total_losses if total_losses > 0 else 0
+    largest_win = max(winning_trades, key=lambda t: t.pnl, default=None)
+    largest_loss = min(losing_trades, key=lambda t: t.pnl, default=None)
+
+    # --- Time & Direction Stats ---
+    holding_times = [(t.exit_date - t.entry_date).total_seconds() for t in trades if t.exit_date]
+    avg_holding_time_seconds = sum(holding_times) / len(holding_times) if holding_times else 0
+
+    long_trades = [t for t in trades if t.direction == 'Long']
+    short_trades = [t for t in trades if t.direction == 'Short']
+    long_wins = sum(1 for t in long_trades if t.pnl is not None and t.pnl > 0)
+    short_wins = sum(1 for t in short_trades if t.pnl is not None and t.pnl > 0)
+    long_win_rate = (long_wins / len(long_trades)) * 100 if long_trades else 0
+    short_win_rate = (short_wins / len(short_trades)) * 100 if short_trades else 0
+
+    # -- Chart 1: Cumulative PnL ---
+    cumulative_pnl = []
+    current_pnl = 0
     dates = []
     for t in trades:
         ref_date = t.exit_date or t.entry_date
-        dates.append(ref_date.strftime('%Y-%m-%d'))
+        dates.append(ref_date.strftime('%Y-%m-%d %H:%M'))
         if t.pnl is not None:
-            cum += t.pnl
-        cumulative.append(cum)
+            current_pnl += t.pnl
+        cumulative_pnl.append(current_pnl)
 
-    # PnL by symbol
-    symbol_dict = {}
+    # --- Chart 2: PnL by Symbol ---
+    symbol_pnl = {}
     for t in trades:
-        symbol_dict.setdefault(t.ticker, 0)
-        symbol_dict[t.ticker] += t.pnl or 0
+        symbol_pnl.setdefault(t.ticker, 0)
+        symbol_pnl[t.ticker] += t.pnl or 0
+    symbol_names = list(symbol_pnl.keys())
+    symbol_pnls = [round(v, 2) for v in symbol_pnl.values()]
+    
+    # --- Chart 3: PnL by Strategy ---
+    strategy_pnl = {}
+    for t in trades:
+        strategy_pnl.setdefault(t.strategy.name, 0)
+        strategy_pnl[t.strategy.name] += t.pnl or 0
+    strategy_names = list(strategy_pnl.keys())
+    strategy_pnls = [round(v, 2) for v in strategy_pnl.values()]
 
-    symbol_names = list(symbol_dict.keys())
-    symbol_pnls = [round(v, 2) for v in symbol_dict.values()]
+    # --- Chart 4: Trade Outcomes by Direction ---
+    long_losses = len([t for t in long_trades if t.pnl is not None and t.pnl < 0])
+    long_be = len([t for t in long_trades if t.pnl is not None and t.pnl == 0])
+    short_losses = len([t for t in short_trades if t.pnl is not None and t.pnl < 0])
+    short_be = len([t for t in short_trades if t.pnl is not None and t.pnl == 0])
+    
+    # --- Other ---
+    from collections import Counter
+    symbol_counts = Counter(t.ticker for t in trades)
+    most_traded_symbol = symbol_counts.most_common(1)[0][0] if symbol_counts else 'N/A'
+
 
     return render_template(
         'statistics.html',
         title='Statistics',
-        total_trades=total,
+        # Overall Performance
+        total_trades=total_trades,
         win_rate=win_rate,
-        avg_pnl=avg_pnl,
+        total_pnl=total_pnl,
+        profit_factor=profit_factor,
+        # PnL Details
+        avg_win=avg_win,
+        avg_loss=avg_loss,
+        largest_win=largest_win,
+        largest_loss=largest_loss,
+        # By Direction
+        long_win_rate=long_win_rate,
+        short_win_rate=short_win_rate,
+        # Other
+        avg_holding_time_seconds=avg_holding_time_seconds,
+        most_traded_symbol=most_traded_symbol,
+        # Chart Data
         dates=dates,
-        cumulative=cumulative,
+        cumulative_pnl=cumulative_pnl,
         symbol_names=symbol_names,
         symbol_pnls=symbol_pnls,
+        strategy_names=strategy_names,
+        strategy_pnls=strategy_pnls,
+        # Direction Chart Data
+        long_wins=long_wins,
+        long_losses=long_losses,
+        long_be=long_be,
+        short_wins=short_wins,
+        short_losses=short_losses,
+        short_be=short_be
     ) 
