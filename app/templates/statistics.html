@@ -23,7 +23,13 @@
             <div class="card border-info h-100">
                 <div class="card-body">
                     <h5 class="card-title">Profit Factor</h5>
-                    <p class="card-text fs-4">{{ "%.2f"|format(profit_factor) }}</p>
+                    <p class="card-text fs-4">
+                        {% if profit_factor is number %}
+                            {{ "%.2f"|format(profit_factor) }}
+                        {% else %}
+                            {{ profit_factor }}
+                        {% endif %}
+                    </p>
                 </div>
             </div>
         </div>

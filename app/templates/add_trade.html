@@ -69,14 +69,23 @@
 
 {% block scripts %}
 <script>
-    // --- Exit Date Defaulting ---
-    const entryDateInput = document.getElementById('entry_date');
-    const exitDateInput = document.getElementById('exit_date');
+    document.addEventListener('DOMContentLoaded', function() {
+        const entryDateInput = document.getElementById('entry_date');
+        const exitDateInput = document.getElementById('exit_date');
 
-    entryDateInput.addEventListener('input', () => {
-        if (entryDateInput.value) {
-            exitDateInput.value = entryDateInput.value;
-        }
+        // --- Default Entry and Exit Date to Now ---
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); // Adjust for local timezone
+        const formattedNow = now.toISOString().slice(0, 16);
+        entryDateInput.value = formattedNow;
+        exitDateInput.value = formattedNow; // Default exit date as well
+
+        // --- Keep Exit Date in Sync with Entry Date ---
+        entryDateInput.addEventListener('input', () => {
+            if (entryDateInput.value) {
+                exitDateInput.value = entryDateInput.value;
+            }
+        });
     });
 
     // --- Strategy Picker Logic ---

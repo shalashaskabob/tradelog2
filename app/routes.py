@@ -119,7 +119,13 @@ def statistics():
     gross_profit = sum(t.pnl for t in winning_trades)
     gross_loss = sum(t.pnl for t in losing_trades)
     
-    profit_factor = abs(gross_profit / gross_loss) if gross_loss != 0 else float('inf')
+    if gross_loss != 0:
+        profit_factor = abs(gross_profit / gross_loss)
+    elif gross_profit > 0:
+        profit_factor = 'Infinite'
+    else:
+        profit_factor = 'N/A'
+
     avg_win = gross_profit / total_wins if total_wins > 0 else 0
     avg_loss = gross_loss / total_losses if total_losses > 0 else 0
     largest_win = max(winning_trades, key=lambda t: t.pnl, default=None)
