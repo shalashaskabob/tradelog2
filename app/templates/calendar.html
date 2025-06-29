@@ -29,19 +29,17 @@
                             {% set d = calendar_cells[(year, month, day)] %}
                             {% set day_pnl = daily_pnl.get(d) %}
                             {% set trades = daily_trades.get(d, []) %}
-                            {% if day_pnl is not none %}
-                                <td class="calendar-cell p-1 position-relative" style="background-color: {% if day_pnl > 0 %}#183c1a{% elif day_pnl < 0 %}#3c1a1a{% else %}#222{% endif %}; color: #fff;">
-                                    <div class="position-absolute top-0 end-0 pe-1 pt-1 small text-muted" style="z-index:2;">{{ day }}</div>
+                            <td class="calendar-cell p-1 position-relative" style="background-color: {% if day_pnl is not none %}{% if day_pnl > 0 %}#183c1a{% elif day_pnl < 0 %}#3c1a1a{% else %}#222{% endif %}{% else %}#222{% endif %}; color: #fff;">
+                                <div class="position-absolute top-0 end-0 pe-1 pt-1 small text-muted" style="z-index:2;">{{ day }}</div>
+                                {% if day_pnl is not none %}
                                     <div class="d-flex flex-column justify-content-center align-items-center h-100" style="min-height: 70px;">
                                         <div class="fw-bold fs-5">{{ day_pnl|round(2) }}</div>
                                         {% if trades|length > 0 %}
                                             <div class="small">{{ trades|length }} trade{{ 's' if trades|length > 1 else '' }}</div>
                                         {% endif %}
                                     </div>
-                                </td>
-                            {% else %}
-                                <td class="calendar-cell bg-dark"></td>
-                            {% endif %}
+                                {% endif %}
+                            </td>
                         {% else %}
                             <td class="calendar-cell bg-transparent"></td>
                         {% endif %}
