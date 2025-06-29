@@ -182,6 +182,7 @@
                                         <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                                     </form>
                                     <a href="{{ url_for('main.edit_trade', trade_id=trade.id) }}" class="btn btn-sm btn-secondary ms-1">Edit</a>
+                                    <a href="{{ url_for('main.share_trade', trade_id=trade.id) }}" class="btn btn-sm btn-info ms-1" target="_blank">Share</a>
                                 </td>
                             </tr>
                         {% else %}

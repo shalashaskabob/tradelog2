@@ -1,13 +1,14 @@
-from flask import render_template, redirect, url_for, request, flash, Blueprint, jsonify, send_from_directory
+from flask import render_template, redirect, url_for, request, flash, Blueprint, jsonify, send_from_directory, send_file
 from flask_login import current_user, login_required
 from app import db
 from app.models import Trade, Strategy, User
 from datetime import datetime
 from app.forms import ChangePasswordForm
 import os
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from calendar import monthrange
 import calendar as cal
+from io import BytesIO
 
 FUTURES_SYMBOLS = [
     'MNQ', 'NQ', 'MES', 'ES', 'RTY', 'M2K', 'CL', 'MCL', 'GC', 'MGC', 'SI', 
@@ -526,3 +527,64 @@ def calendar():
         week_pnl=week_pnl,
         month_name=start_date.strftime('%B'),
         calendar_cells=calendar_cells) 
+
+@bp.route('/share_trade/<int:trade_id>')
+@login_required
+def share_trade(trade_id):
+    trade = Trade.query.get_or_404(trade_id)
+    if trade.user_id != current_user.id:
+        flash('You are not authorized to share this trade.', 'danger')
+        return redirect(url_for('main.index'))
+
+    # Card dimensions
+    width, height = 600, 340
+    card = Image.new('RGB', (width, height), color='#222')
+    draw = ImageDraw.Draw(card)
+
+    # Load fonts (fallback to default if not found)
+    try:
+        font_title = ImageFont.truetype('arial.ttf', 36)
+        font_label = ImageFont.truetype('arial.ttf', 22)
+        font_value = ImageFont.truetype('arial.ttf', 28)
+        font_small = ImageFont.truetype('arial.ttf', 18)
+    except:
+        font_title = font_label = font_value = font_small = ImageFont.load_default()
+
+    # Draw card content
+    draw.text((30, 20), f"Trade Result", font=font_title, fill='#fff')
+    draw.text((30, 70), f"Symbol:", font=font_label, fill='#aaa')
+    draw.text((180, 70), trade.ticker, font=font_value, fill='#fff')
+    draw.text((30, 110), f"Direction:", font=font_label, fill='#aaa')
+    draw.text((180, 110), trade.direction, font=font_value, fill='#fff')
+    draw.text((30, 150), f"Entry:", font=font_label, fill='#aaa')
+    draw.text((180, 150), f"{trade.entry_price}", font=font_value, fill='#fff')
+    draw.text((30, 190), f"Exit:", font=font_label, fill='#aaa')
+    draw.text((180, 190), f"{trade.exit_price if trade.exit_price is not None else '-'}", font=font_value, fill='#fff')
+    draw.text((30, 230), f"PnL:", font=font_label, fill='#aaa')
+    pnl_color = '#2ecc40' if trade.pnl and trade.pnl > 0 else '#ff4136' if trade.pnl and trade.pnl < 0 else '#fff'
+    draw.text((180, 230), f"{trade.pnl if trade.pnl is not None else '-'}", font=font_value, fill=pnl_color)
+    draw.text((30, 270), f"Strategy:", font=font_label, fill='#aaa')
+    draw.text((180, 270), trade.strategy.name if trade.strategy else '-', font=font_value, fill='#fff')
+    draw.text((30, 310), f"Date:", font=font_label, fill='#aaa')
+    draw.text((180, 310), trade.entry_date.strftime('%Y-%m-%d'), font=font_small, fill='#fff')
+
+    # Optionally, add screenshot thumbnail if available
+    if trade.screenshot:
+        import os
+        screenshot_path = os.path.join(UPLOAD_FOLDER, trade.screenshot.replace('\\', '/'))
+        if os.path.exists(screenshot_path):
+            try:
+                with Image.open(screenshot_path) as img:
+                    img.thumbnail((120, 120))
+                    card.paste(img, (width-140, 30))
+            except Exception as e:
+                pass
+
+    # Branding
+    draw.text((width-180, height-30), "tradelog", font=font_small, fill='#888')
+
+    # Output to BytesIO
+    img_io = BytesIO()
+    card.save(img_io, 'PNG')
+    img_io.seek(0)
+    return send_file(img_io, mimetype='image/png', as_attachment=False, download_name=f'trade_{trade.id}_card.png') 
