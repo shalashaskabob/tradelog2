@@ -510,6 +510,12 @@ def calendar():
         week_pnl[week] += pnl
     # Prepare calendar grid
     cal_grid = cal.monthcalendar(year, month)
+    # Build a mapping from (year, month, day) to date object
+    calendar_cells = {}
+    for week in cal_grid:
+        for day in week:
+            if day != 0:
+                calendar_cells[(year, month, day)] = date(year, month, day)
     return render_template('calendar.html',
         title='PnL Calendar',
         year=year,
@@ -518,4 +524,5 @@ def calendar():
         daily_pnl=daily_pnl,
         daily_trades=daily_trades,
         week_pnl=week_pnl,
-        month_name=start_date.strftime('%B')) 
+        month_name=start_date.strftime('%B'),
+        calendar_cells=calendar_cells) 

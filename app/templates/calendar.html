@@ -20,17 +20,11 @@
             <tbody>
                 {% for week in cal_grid %}
                 <tr>
-                    {% set week_num = loop.index0 + 1 %}
-                    {% set week_iso = None %}
                     {% for day in week %}
                         {% if day != 0 %}
-                            {% set d = day %}
-                            {% set date_obj = namespace(val=none) %}
-                            {% set date_obj.val = day|string + '-' + month|string + '-' + year|string %}
-                            {% set this_date = year ~ '-' ~ '%02d' % month ~ '-' ~ '%02d' % day %}
-                            {% set dt = this_date|to_datetime('%Y-%m-%d') %}
-                            {% set day_pnl = daily_pnl.get(dt.date(), 0) %}
-                            {% set trades = daily_trades.get(dt.date(), []) %}
+                            {% set d = calendar_cells[(year, month, day)] %}
+                            {% set day_pnl = daily_pnl.get(d, 0) %}
+                            {% set trades = daily_trades.get(d, []) %}
                             <td class="p-1" style="vertical-align: top;">
                                 <div class="fw-bold {% if day_pnl > 0 %}text-success{% elif day_pnl < 0 %}text-danger{% else %}text-secondary{% endif %}">
                                     {{ day_pnl|round(2) }}
@@ -47,7 +41,7 @@
                 </tr>
                 <tr>
                     <td colspan="7" class="text-end small text-info">
-                        Week PnL: {{ week_pnl.get(week[0]|to_datetime('%Y-%m-%d').isocalendar()[1], 0)|round(2) }}
+                        {# Week PnL summary can be improved in a future step #}
                     </td>
                 </tr>
                 {% endfor %}
