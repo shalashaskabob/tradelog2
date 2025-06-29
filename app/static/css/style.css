@@ -20,3 +20,10 @@ body {
     color: white;
     border-color: #0d6efd;
 }
+
+.calendar-cell {
+    width: 120px;
+    height: 80px;
+    vertical-align: top;
+    text-align: left;
+}
