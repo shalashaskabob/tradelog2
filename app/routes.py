@@ -572,28 +572,14 @@ def share_trade(trade_id):
     shadow.paste(card, (12,12), card)
     card = shadow.crop((0,0,width,height))
 
-    # Lion logo as semi-transparent watermark (bottom right)
-    logo_path = os.path.join('app', 'static', 'lion_logo.png', 'lion_logo.png')
-    if os.path.exists(logo_path):
-        try:
-            with Image.open(logo_path).convert('RGBA') as logo:
-                logo_size = 120
-                logo.thumbnail((logo_size, logo_size))
-                # Make it semi-transparent
-                alpha = logo.split()[-1].point(lambda p: p * 0.18)
-                logo.putalpha(alpha)
-                card.paste(logo, (width-logo_size-30, height-logo_size-30), logo)
-        except Exception as e:
-            pass
-
-    # Load Roboto font
+    # Load Roboto font (bold weight for all text)
     font_path = os.path.join('app', 'static', 'fonts', 'Roboto-VariableFont_wdth,wght.ttf')
     try:
-        font_title = ImageFont.truetype(font_path, 36)
-        font_label = ImageFont.truetype(font_path, 22)
-        font_value = ImageFont.truetype(font_path, 38)
-        font_pnl = ImageFont.truetype(font_path, 54)
-        font_small = ImageFont.truetype(font_path, 18)
+        font_title = ImageFont.truetype(font_path, 36, layout_engine=ImageFont.LAYOUT_BASIC)
+        font_label = ImageFont.truetype(font_path, 24, layout_engine=ImageFont.LAYOUT_BASIC)
+        font_value = ImageFont.truetype(font_path, 40, layout_engine=ImageFont.LAYOUT_BASIC)
+        font_pnl = ImageFont.truetype(font_path, 56, layout_engine=ImageFont.LAYOUT_BASIC)
+        font_small = ImageFont.truetype(font_path, 20, layout_engine=ImageFont.LAYOUT_BASIC)
     except Exception as e:
         font_title = font_label = font_value = font_pnl = font_small = ImageFont.load_default()
 
@@ -606,21 +592,23 @@ def share_trade(trade_id):
     draw.text((40, 48), "TRADELOG", font=font_title, fill='#fff')
     draw.text((40, 92), "Trade Card", font=font_label, fill='#b0b0b0')
 
-    # Main trade info (left)
+    # Main trade info (left, tighter spacing)
     y0 = 140
+    spacing = 36
     draw.text((40, y0), "Symbol:", font=font_label, fill='#b0b0b0')
     draw.text((160, y0), trade.ticker, font=font_value, fill='#fff')
-    draw.text((40, y0+38), "Direction:", font=font_label, fill='#b0b0b0')
-    draw.text((160, y0+38), trade.direction, font=font_value, fill='#fff')
-    draw.text((40, y0+76), "Entry:", font=font_label, fill='#b0b0b0')
-    draw.text((160, y0+76), f"{trade.entry_price}", font=font_value, fill='#fff')
-    draw.text((40, y0+114), "Exit:", font=font_label, fill='#b0b0b0')
-    draw.text((160, y0+114), f"{trade.exit_price if trade.exit_price is not None else '-'}", font=font_value, fill='#fff')
+    draw.text((40, y0+spacing), "Direction:", font=font_label, fill='#b0b0b0')
+    draw.text((160, y0+spacing), trade.direction, font=font_value, fill='#fff')
+    draw.text((40, y0+spacing*2), "Entry:", font=font_label, fill='#b0b0b0')
+    draw.text((160, y0+spacing*2), f"{trade.entry_price}", font=font_value, fill='#fff')
+    draw.text((40, y0+spacing*3), "Exit:", font=font_label, fill='#b0b0b0')
+    draw.text((160, y0+spacing*3), f"{trade.exit_price if trade.exit_price is not None else '-'}", font=font_value, fill='#fff')
 
-    # PnL pill (right side)
+    # Center the PnL pill
     pnl_color = '#00d4aa' if trade.pnl and trade.pnl > 0 else '#ff6b6b' if trade.pnl and trade.pnl < 0 else '#fff'
-    pill_x, pill_y = 340, y0
     pill_w, pill_h = 220, 90
+    pill_x = (width - pill_w) // 2 + 60
+    pill_y = y0 + spacing*1
     pill_bg = (0, 212, 170, 38) if trade.pnl and trade.pnl > 0 else (255, 107, 107, 38) if trade.pnl and trade.pnl < 0 else (255,255,255,30)
     pill = Image.new('RGBA', (pill_w, pill_h), (0,0,0,0))
     pill_draw = ImageDraw.Draw(pill)
