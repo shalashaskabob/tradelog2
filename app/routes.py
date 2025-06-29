@@ -5,7 +5,7 @@ from app.models import Trade, Strategy, User
 from datetime import datetime
 from app.forms import ChangePasswordForm
 import os
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from calendar import monthrange
 import calendar as cal
 from io import BytesIO
@@ -541,104 +541,112 @@ def share_trade(trade_id):
     card = Image.new('RGBA', (width, height), color=(0, 0, 0, 0))
     draw = ImageDraw.Draw(card)
 
-    # Create rounded rectangle background with gradient
-    radius = 20
-    # Main card background with gradient
+    # Modern dark gradient background
+    bg = Image.new('RGBA', (width, height), color=(0, 0, 0, 0))
+    bg_draw = ImageDraw.Draw(bg)
     for y in range(height):
-        # Sleek dark gradient
-        r = int(18 + (12 * y / height))
-        g = int(18 + (8 * y / height))
-        b = int(25 + (15 * y / height))
-        draw.line([(0, y), (width, y)], fill=(r, g, b, 255))
+        r = int(30 + 20 * y / height)
+        g = int(32 + 18 * y / height)
+        b = int(40 + 30 * y / height)
+        bg_draw.line([(0, y), (width, y)], fill=(r, g, b, 255))
+    # Add a subtle vignette
+    vignette = Image.new('L', (width, height), 0)
+    vignette_draw = ImageDraw.Draw(vignette)
+    vignette_draw.ellipse([(-80, -80), (width+80, height+80)], fill=255)
+    vignette = vignette.filter(ImageFilter.GaussianBlur(60))
+    bg.putalpha(vignette)
+    card = Image.alpha_composite(card, bg)
 
-    # Create rounded corners mask
+    # Rounded corners mask
+    radius = 28
     mask = Image.new('L', (width, height), 0)
     mask_draw = ImageDraw.Draw(mask)
     mask_draw.rounded_rectangle([(0, 0), (width, height)], radius=radius, fill=255)
-    
-    # Apply rounded corners
     card.putalpha(mask)
-    
-    # Add subtle inner glow effect
-    glow_card = Image.new('RGBA', (width, height), color=(0, 0, 0, 0))
-    glow_draw = ImageDraw.Draw(glow_card)
-    glow_draw.rounded_rectangle([(2, 2), (width-2, height-2)], radius=radius-2, fill=(255, 255, 255, 15))
-    card = Image.alpha_composite(card, glow_card)
 
-    # Load fonts (use bundled Roboto font for all text)
+    # Drop shadow (simulate by compositing on a slightly larger transparent image)
+    shadow = Image.new('RGBA', (width+24, height+24), (0,0,0,0))
+    shadow_draw = ImageDraw.Draw(shadow)
+    shadow_draw.rounded_rectangle([(12, 12), (width+12, height+12)], radius=radius+8, fill=(0,0,0,90))
+    shadow = shadow.filter(ImageFilter.GaussianBlur(8))
+    shadow.paste(card, (12,12), card)
+    card = shadow.crop((0,0,width,height))
+
+    # Lion logo as semi-transparent watermark (bottom right)
+    logo_path = os.path.join('app', 'static', 'lion_logo.png', 'lion_logo.png')
+    if os.path.exists(logo_path):
+        try:
+            with Image.open(logo_path).convert('RGBA') as logo:
+                logo_size = 120
+                logo.thumbnail((logo_size, logo_size))
+                # Make it semi-transparent
+                alpha = logo.split()[-1].point(lambda p: p * 0.18)
+                logo.putalpha(alpha)
+                card.paste(logo, (width-logo_size-30, height-logo_size-30), logo)
+        except Exception as e:
+            pass
+
+    # Load Roboto font
     font_path = os.path.join('app', 'static', 'fonts', 'Roboto-VariableFont_wdth,wght.ttf')
     try:
         font_title = ImageFont.truetype(font_path, 36)
         font_label = ImageFont.truetype(font_path, 22)
         font_value = ImageFont.truetype(font_path, 38)
-        font_pnl = ImageFont.truetype(font_path, 48)
+        font_pnl = ImageFont.truetype(font_path, 54)
         font_small = ImageFont.truetype(font_path, 18)
     except Exception as e:
         font_title = font_label = font_value = font_pnl = font_small = ImageFont.load_default()
 
-    # Draw all text on the final card image after all compositing
     draw = ImageDraw.Draw(card)
 
-    # DEBUG: Draw a bright rectangle behind the title to confirm text visibility
-    try:
-        draw.rectangle([(120, 25), (350, 75)], fill=(255, 255, 0, 180))
-        draw.text((130, 32), "TRADELOG", font=font_title, fill='#000000')
-    except Exception as e:
-        print('Error drawing title:', e)
+    # Accent line (top left)
+    draw.line([(40, 38), (180, 38)], fill='#4a90e2', width=4)
 
-    try:
-        draw.text((130, 70), "Trade Card", font=font_label, fill='#ffffff')
-        draw.line([(130, 95), (280, 95)], fill='#4a90e2', width=2)
+    # Title
+    draw.text((40, 48), "TRADELOG", font=font_title, fill='#fff')
+    draw.text((40, 92), "Trade Card", font=font_label, fill='#b0b0b0')
 
-        # Main trade info (left side)
-        y0 = 120
-        draw.text((40, y0), f"Symbol:", font=font_label, fill='#ffffff')
-        draw.text((180, y0), trade.ticker, font=font_value, fill='#ffffff')
-        draw.text((40, y0+40), f"Direction:", font=font_label, fill='#ffffff')
-        draw.text((180, y0+40), trade.direction, font=font_value, fill='#ffffff')
-        draw.text((40, y0+80), f"Entry:", font=font_label, fill='#ffffff')
-        draw.text((180, y0+80), f"{trade.entry_price}", font=font_value, fill='#ffffff')
-        draw.text((40, y0+120), f"Exit:", font=font_label, fill='#ffffff')
-        draw.text((180, y0+120), f"{trade.exit_price if trade.exit_price is not None else '-'}", font=font_value, fill='#ffffff')
+    # Main trade info (left)
+    y0 = 140
+    draw.text((40, y0), "Symbol:", font=font_label, fill='#b0b0b0')
+    draw.text((160, y0), trade.ticker, font=font_value, fill='#fff')
+    draw.text((40, y0+38), "Direction:", font=font_label, fill='#b0b0b0')
+    draw.text((160, y0+38), trade.direction, font=font_value, fill='#fff')
+    draw.text((40, y0+76), "Entry:", font=font_label, fill='#b0b0b0')
+    draw.text((160, y0+76), f"{trade.entry_price}", font=font_value, fill='#fff')
+    draw.text((40, y0+114), "Exit:", font=font_label, fill='#b0b0b0')
+    draw.text((160, y0+114), f"{trade.exit_price if trade.exit_price is not None else '-'}", font=font_value, fill='#fff')
 
-        # PnL section
-        pnl_color = '#00d4aa' if trade.pnl and trade.pnl > 0 else '#ff6b6b' if trade.pnl and trade.pnl < 0 else '#ffffff'
-        draw.text((380, y0), "PnL:", font=font_label, fill='#ffffff')
-        draw.text((380, y0+50), f"{trade.pnl if trade.pnl is not None else '-'}", font=font_pnl, fill=pnl_color)
+    # PnL pill (right side)
+    pnl_color = '#00d4aa' if trade.pnl and trade.pnl > 0 else '#ff6b6b' if trade.pnl and trade.pnl < 0 else '#fff'
+    pill_x, pill_y = 340, y0
+    pill_w, pill_h = 220, 90
+    pill_bg = (0, 212, 170, 38) if trade.pnl and trade.pnl > 0 else (255, 107, 107, 38) if trade.pnl and trade.pnl < 0 else (255,255,255,30)
+    pill = Image.new('RGBA', (pill_w, pill_h), (0,0,0,0))
+    pill_draw = ImageDraw.Draw(pill)
+    pill_draw.rounded_rectangle([(0,0),(pill_w,pill_h)], radius=32, fill=pill_bg)
+    card.paste(pill, (pill_x, pill_y), pill)
+    draw.text((pill_x+20, pill_y+10), "PnL", font=font_label, fill='#b0b0b0')
+    draw.text((pill_x+20, pill_y+38), f"{trade.pnl if trade.pnl is not None else '-'}", font=font_pnl, fill=pnl_color)
 
-        # Strategy and date
-        draw.text((380, y0+110), f"Strategy:", font=font_label, fill='#ffffff')
-        draw.text((380, y0+140), trade.strategy.name if trade.strategy else '-', font=font_small, fill='#ffffff')
-        draw.text((40, height-40), f"Date: {trade.entry_date.strftime('%Y-%m-%d')}", font=font_small, fill='#ffffff')
-    except Exception as e:
-        print('Error drawing text:', e)
+    # Strategy and date (bottom left)
+    draw.text((40, height-60), f"Strategy: {trade.strategy.name if trade.strategy else '-'}", font=font_small, fill='#b0b0b0')
+    draw.text((40, height-32), f"Date: {trade.entry_date.strftime('%Y-%m-%d')}", font=font_small, fill='#b0b0b0')
 
-    # Optionally, add screenshot thumbnail if available
+    # Screenshot thumbnail (bottom right, above logo)
     if trade.screenshot:
         screenshot_path = os.path.join(UPLOAD_FOLDER, trade.screenshot.replace('\\', '/'))
         if os.path.exists(screenshot_path):
             try:
                 with Image.open(screenshot_path) as img:
-                    img.thumbnail((90, 90))
-                    # Add rounded corners to screenshot
-                    screenshot_mask = Image.new('L', (90, 90), 0)
+                    img.thumbnail((80, 80))
+                    screenshot_mask = Image.new('L', (80, 80), 0)
                     screenshot_mask_draw = ImageDraw.Draw(screenshot_mask)
-                    screenshot_mask_draw.rounded_rectangle([(0, 0), (90, 90)], radius=8, fill=255)
+                    screenshot_mask_draw.rounded_rectangle([(0, 0), (80, 80)], radius=12, fill=255)
                     img.putalpha(screenshot_mask)
-                    card.paste(img, (width-110, height-110), img)
+                    card.paste(img, (width-110, height-130), img)
             except Exception as e:
                 pass
-
-    # Lion logo (top left)
-    logo_path = os.path.join('app', 'static', 'lion_logo.png', 'lion_logo.png')
-    if os.path.exists(logo_path):
-        try:
-            with Image.open(logo_path).convert('RGBA') as logo:
-                logo_size = 80
-                logo.thumbnail((logo_size, logo_size))
-                card.paste(logo, (30, 20), logo)
-        except Exception as e:
-            pass
 
     # Output to BytesIO
     img_io = BytesIO()
