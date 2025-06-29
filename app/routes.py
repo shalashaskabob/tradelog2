@@ -44,9 +44,10 @@ def add_trade():
             if not strategy_name:
                 flash('Strategy name cannot be empty.', 'danger')
                 return redirect(url_for('main.add_trade'))
-            strategy = Strategy.query.filter_by(name=strategy_name).first()
+            # User-specific strategy
+            strategy = Strategy.query.filter_by(name=strategy_name, user_id=current_user.id).first()
             if not strategy:
-                strategy = Strategy(name=strategy_name)
+                strategy = Strategy(name=strategy_name, user_id=current_user.id)
                 db.session.add(strategy)
             new_trade = Trade(
                 ticker=request.form['ticker'],
@@ -71,18 +72,15 @@ def add_trade():
                 trade_id = new_trade.id
                 trade_folder = os.path.join(UPLOAD_FOLDER, str(user_id), str(trade_id))
                 os.makedirs(trade_folder, exist_ok=True)
-                # Save original
                 ext = os.path.splitext(file.filename)[1].lower()
                 img_filename = f'screenshot{ext}'
                 img_path = os.path.join(trade_folder, img_filename)
                 file.save(img_path)
-                # Generate thumbnail
                 thumb_filename = f'thumb{ext}'
                 thumb_path = os.path.join(trade_folder, thumb_filename)
                 with Image.open(img_path) as img:
                     img.thumbnail(THUMB_SIZE)
                     img.save(thumb_path)
-                # Store relative path in DB (e.g., 'user_id/trade_id/screenshot.jpg')
                 new_trade.screenshot = f'{user_id}/{trade_id}/{img_filename}'
             db.session.commit()
             flash('Trade added successfully!', 'success')
@@ -90,7 +88,8 @@ def add_trade():
         except Exception as e:
             db.session.rollback()
             flash(f'Error adding trade: {e}', 'danger')
-    strategies = Strategy.query.join(Trade).filter(Trade.user_id == current_user.id).distinct().all()
+    # Only show current user's strategies
+    strategies = Strategy.query.filter_by(user_id=current_user.id).order_by(Strategy.name).all()
     return render_template(
         'add_trade.html',
         title='Add Trade',
@@ -127,18 +126,17 @@ def clear_log():
     return redirect(url_for('main.index'))
 
 @bp.route('/add_strategy', methods=['POST'])
+@login_required
 def add_strategy():
     data = request.get_json()
     if not data or 'name' not in data or not data['name'].strip():
         return jsonify({'success': False, 'message': 'Invalid strategy name.'}), 400
-    
     name = data['name'].strip()
-    
-    if Strategy.query.filter_by(name=name).first():
+    # User-specific strategy
+    if Strategy.query.filter_by(name=name, user_id=current_user.id).first():
         return jsonify({'success': False, 'message': 'Strategy already exists.'}), 409
-
     try:
-        new_strategy = Strategy(name=name)
+        new_strategy = Strategy(name=name, user_id=current_user.id)
         db.session.add(new_strategy)
         db.session.commit()
         return jsonify({'success': True, 'id': new_strategy.id, 'name': new_strategy.name})
