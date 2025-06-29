@@ -27,19 +27,21 @@
                     {% for day in week %}
                         {% if day != 0 %}
                             {% set d = calendar_cells[(year, month, day)] %}
-                            {% set day_pnl = daily_pnl.get(d, 0) %}
+                            {% set day_pnl = daily_pnl.get(d) %}
                             {% set trades = daily_trades.get(d, []) %}
-                            <td class="p-1" style="vertical-align: top; background-color: {% if day_pnl > 0 %}#183c1a{% elif day_pnl < 0 %}#3c1a1a{% else %}#222{% endif %}; color: #fff;">
-                                <div class="fw-bold">
-                                    {{ day_pnl|round(2) }}
-                                </div>
-                                <div class="small text-muted">{{ day }}</div>
-                                {% if trades|length > 0 %}
-                                    <div class="small">{{ trades|length }} trade{{ 's' if trades|length > 1 else '' }}</div>
-                                {% endif %}
-                            </td>
+                            {% if day_pnl is not none %}
+                                <td class="p-1" style="vertical-align: top; background-color: {% if day_pnl > 0 %}#183c1a{% elif day_pnl < 0 %}#3c1a1a{% else %}#222{% endif %}; color: #fff;">
+                                    <div class="fw-bold">{{ day_pnl|round(2) }}</div>
+                                    <div class="small text-muted">{{ day }}</div>
+                                    {% if trades|length > 0 %}
+                                        <div class="small">{{ trades|length }} trade{{ 's' if trades|length > 1 else '' }}</div>
+                                    {% endif %}
+                                </td>
+                            {% else %}
+                                <td></td>
+                            {% endif %}
                         {% else %}
-                            <td class="bg-secondary"></td>
+                            <td></td>
                         {% endif %}
                     {% endfor %}
                 </tr>
