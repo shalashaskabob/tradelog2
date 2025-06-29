@@ -538,21 +538,32 @@ def share_trade(trade_id):
 
     # Card dimensions
     width, height = 600, 340
-    card = Image.new('RGBA', (width, height), color=(34, 34, 34, 255))
+    card = Image.new('RGBA', (width, height), color=(0, 0, 0, 0))
     draw = ImageDraw.Draw(card)
 
-    # Gradient background
+    # Create rounded rectangle background with gradient
+    radius = 20
+    # Main card background with gradient
     for y in range(height):
-        r = int(34 + (30 * y / height))
-        g = int(34 + (60 * y / height))
-        b = int(34 + (90 * y / height))
+        # Sleek dark gradient
+        r = int(18 + (12 * y / height))
+        g = int(18 + (8 * y / height))
+        b = int(25 + (15 * y / height))
         draw.line([(0, y), (width, y)], fill=(r, g, b, 255))
 
-    # Rounded corners mask
+    # Create rounded corners mask
     mask = Image.new('L', (width, height), 0)
     mask_draw = ImageDraw.Draw(mask)
-    mask_draw.rounded_rectangle([(0, 0), (width, height)], radius=36, fill=255)
+    mask_draw.rounded_rectangle([(0, 0), (width, height)], radius=radius, fill=255)
+    
+    # Apply rounded corners
     card.putalpha(mask)
+    
+    # Add subtle inner glow effect
+    glow_card = Image.new('RGBA', (width, height), color=(0, 0, 0, 0))
+    glow_draw = ImageDraw.Draw(glow_card)
+    glow_draw.rounded_rectangle([(2, 2), (width-2, height-2)], radius=radius-2, fill=(255, 255, 255, 15))
+    card = Image.alpha_composite(card, glow_card)
 
     # Lion logo (top left)
     logo_path = os.path.join('app', 'static', 'lion_logo.png', 'lion_logo.png')
@@ -575,30 +586,42 @@ def share_trade(trade_id):
     except:
         font_title = font_label = font_value = font_pnl = font_small = ImageFont.load_default()
 
-    # Title and branding
-    draw.text((130, 32), "TRADELOG", font=font_title, fill='#fff')
-    draw.text((130, 70), "Trade Card", font=font_label, fill='#aaa')
+    # Title and branding with subtle glow
+    draw.text((130, 32), "TRADELOG", font=font_title, fill='#ffffff')
+    draw.text((130, 70), "Trade Card", font=font_label, fill='#b0b0b0')
+
+    # Add subtle accent line
+    draw.line([(130, 95), (280, 95)], fill='#4a90e2', width=2)
 
     # Main trade info (left side)
     y0 = 120
-    draw.text((40, y0), f"Symbol:", font=font_label, fill='#aaa')
-    draw.text((180, y0), trade.ticker, font=font_value, fill='#fff')
-    draw.text((40, y0+40), f"Direction:", font=font_label, fill='#aaa')
-    draw.text((180, y0+40), trade.direction, font=font_value, fill='#fff')
-    draw.text((40, y0+80), f"Entry:", font=font_label, fill='#aaa')
-    draw.text((180, y0+80), f"{trade.entry_price}", font=font_value, fill='#fff')
-    draw.text((40, y0+120), f"Exit:", font=font_label, fill='#aaa')
-    draw.text((180, y0+120), f"{trade.exit_price if trade.exit_price is not None else '-'}", font=font_value, fill='#fff')
+    draw.text((40, y0), f"Symbol:", font=font_label, fill='#b0b0b0')
+    draw.text((180, y0), trade.ticker, font=font_value, fill='#ffffff')
+    draw.text((40, y0+40), f"Direction:", font=font_label, fill='#b0b0b0')
+    draw.text((180, y0+40), trade.direction, font=font_value, fill='#ffffff')
+    draw.text((40, y0+80), f"Entry:", font=font_label, fill='#b0b0b0')
+    draw.text((180, y0+80), f"{trade.entry_price}", font=font_value, fill='#ffffff')
+    draw.text((40, y0+120), f"Exit:", font=font_label, fill='#b0b0b0')
+    draw.text((180, y0+120), f"{trade.exit_price if trade.exit_price is not None else '-'}", font=font_value, fill='#ffffff')
 
-    # PnL (big and bold - right side)
-    pnl_color = '#2ecc40' if trade.pnl and trade.pnl > 0 else '#ff4136' if trade.pnl and trade.pnl < 0 else '#fff'
-    draw.text((380, y0), "PnL:", font=font_label, fill='#aaa')
+    # PnL section with background highlight
+    pnl_color = '#00d4aa' if trade.pnl and trade.pnl > 0 else '#ff6b6b' if trade.pnl and trade.pnl < 0 else '#ffffff'
+    pnl_bg_color = (0, 212, 170, 30) if trade.pnl and trade.pnl > 0 else (255, 107, 107, 30) if trade.pnl and trade.pnl < 0 else (255, 255, 255, 30)
+    
+    # PnL background rectangle
+    pnl_rect = [(380, y0-10), (width-30, y0+80)]
+    pnl_bg = Image.new('RGBA', (width, height), color=(0, 0, 0, 0))
+    pnl_bg_draw = ImageDraw.Draw(pnl_bg)
+    pnl_bg_draw.rounded_rectangle(pnl_rect, radius=10, fill=pnl_bg_color)
+    card = Image.alpha_composite(card, pnl_bg)
+    
+    draw.text((380, y0), "PnL:", font=font_label, fill='#b0b0b0')
     draw.text((380, y0+50), f"{trade.pnl if trade.pnl is not None else '-'}", font=font_pnl, fill=pnl_color)
 
     # Strategy and date
-    draw.text((380, y0+110), f"Strategy:", font=font_label, fill='#aaa')
-    draw.text((380, y0+140), trade.strategy.name if trade.strategy else '-', font=font_small, fill='#fff')
-    draw.text((40, height-40), f"Date: {trade.entry_date.strftime('%Y-%m-%d')}", font=font_small, fill='#aaa')
+    draw.text((380, y0+110), f"Strategy:", font=font_label, fill='#b0b0b0')
+    draw.text((380, y0+140), trade.strategy.name if trade.strategy else '-', font=font_small, fill='#ffffff')
+    draw.text((40, height-40), f"Date: {trade.entry_date.strftime('%Y-%m-%d')}", font=font_small, fill='#888888')
 
     # Optionally, add screenshot thumbnail if available
     if trade.screenshot:
@@ -607,7 +630,12 @@ def share_trade(trade_id):
             try:
                 with Image.open(screenshot_path) as img:
                     img.thumbnail((90, 90))
-                    card.paste(img, (width-110, height-110))
+                    # Add rounded corners to screenshot
+                    screenshot_mask = Image.new('L', (90, 90), 0)
+                    screenshot_mask_draw = ImageDraw.Draw(screenshot_mask)
+                    screenshot_mask_draw.rounded_rectangle([(0, 0), (90, 90)], radius=8, fill=255)
+                    img.putalpha(screenshot_mask)
+                    card.paste(img, (width-110, height-110), img)
             except Exception as e:
                 pass
 
