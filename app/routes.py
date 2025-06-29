@@ -1,9 +1,11 @@
-from flask import render_template, redirect, url_for, request, flash, Blueprint, jsonify
+from flask import render_template, redirect, url_for, request, flash, Blueprint, jsonify, send_from_directory
 from flask_login import current_user, login_required
 from app import db
 from app.models import Trade, Strategy, User
 from datetime import datetime
 from app.forms import ChangePasswordForm
+import os
+from PIL import Image
 
 FUTURES_SYMBOLS = [
     'MNQ', 'NQ', 'MES', 'ES', 'RTY', 'M2K', 'CL', 'MCL', 'GC', 'MGC', 'SI', 
@@ -12,6 +14,9 @@ FUTURES_SYMBOLS = [
 
 bp = Blueprint('main', __name__)
 
+UPLOAD_FOLDER = '/var/data/uploads'
+THUMB_SIZE = (150, 150)
+
 @bp.route('/')
 @bp.route('/index')
 @login_required
@@ -19,32 +24,30 @@ def index():
     trades = Trade.query.filter_by(trader=current_user).order_by(Trade.entry_date.desc()).all()
     return render_template('index.html', title='Home', trades=trades)
 
+@bp.route('/uploads/<path:filepath>')
+def uploaded_file(filepath):
+    # Serve files from persistent storage
+    return send_from_directory(UPLOAD_FOLDER, filepath)
+
 @bp.route('/add_trade', methods=['GET', 'POST'])
 @login_required
 def add_trade():
     if request.method == 'POST':
         try:
             entry_date = datetime.strptime(request.form['entry_date'], '%Y-%m-%dT%H:%M')
-            
             exit_date = None
             if request.form.get('exit_date'):
                 exit_date = datetime.strptime(request.form['exit_date'], '%Y-%m-%dT%H:%M')
-
-            # --- Strategy Handling ---
             strategy_name = request.form.get('strategy_choice')
             if strategy_name == '__new__':
                 strategy_name = request.form.get('strategy_new_input')
-
             if not strategy_name:
                 flash('Strategy name cannot be empty.', 'danger')
                 return redirect(url_for('main.add_trade'))
-
             strategy = Strategy.query.filter_by(name=strategy_name).first()
             if not strategy:
                 strategy = Strategy(name=strategy_name)
                 db.session.add(strategy)
-                # We don't commit here, let the trade commit handle it
-            
             new_trade = Trade(
                 ticker=request.form['ticker'],
                 entry_date=entry_date,
@@ -56,22 +59,37 @@ def add_trade():
                 exit_date=exit_date,
                 trader=current_user
             )
-            
             if request.form.get('exit_price'):
                 new_trade.exit_price = float(request.form.get('exit_price'))
-            
-            # Set PnL using the model's calculation property
             new_trade.pnl = new_trade.calculate_pnl
-
             db.session.add(new_trade)
+            db.session.flush()  # Get trade.id before commit
+            # --- Screenshot upload logic ---
+            file = request.files.get('screenshot')
+            if file and file.filename:
+                user_id = current_user.id
+                trade_id = new_trade.id
+                trade_folder = os.path.join(UPLOAD_FOLDER, str(user_id), str(trade_id))
+                os.makedirs(trade_folder, exist_ok=True)
+                # Save original
+                ext = os.path.splitext(file.filename)[1].lower()
+                img_filename = f'screenshot{ext}'
+                img_path = os.path.join(trade_folder, img_filename)
+                file.save(img_path)
+                # Generate thumbnail
+                thumb_filename = f'thumb{ext}'
+                thumb_path = os.path.join(trade_folder, thumb_filename)
+                with Image.open(img_path) as img:
+                    img.thumbnail(THUMB_SIZE)
+                    img.save(thumb_path)
+                # Store relative path in DB (e.g., 'user_id/trade_id/screenshot.jpg')
+                new_trade.screenshot = f'{user_id}/{trade_id}/{img_filename}'
             db.session.commit()
             flash('Trade added successfully!', 'success')
             return redirect(url_for('main.index'))
         except Exception as e:
             db.session.rollback()
             flash(f'Error adding trade: {e}', 'danger')
-
-    # GET request - gather existing strategies
     strategies = Strategy.query.join(Trade).filter(Trade.user_id == current_user.id).distinct().all()
     return render_template(
         'add_trade.html',
