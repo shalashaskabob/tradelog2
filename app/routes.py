@@ -565,13 +565,14 @@ def share_trade(trade_id):
     glow_draw.rounded_rectangle([(2, 2), (width-2, height-2)], radius=radius-2, fill=(255, 255, 255, 15))
     card = Image.alpha_composite(card, glow_card)
 
-    # Load fonts (fallback to default if not found)
+    # Load fonts (use bundled Roboto font for all text)
+    font_path = os.path.join('app', 'static', 'fonts', 'Roboto-VariableFont_wdth,wght.ttf')
     try:
-        font_title = ImageFont.truetype('arial.ttf', 36)
-        font_label = ImageFont.truetype('arial.ttf', 22)
-        font_value = ImageFont.truetype('arialbd.ttf', 38)
-        font_pnl = ImageFont.truetype('arialbd.ttf', 48)
-        font_small = ImageFont.truetype('arial.ttf', 18)
+        font_title = ImageFont.truetype(font_path, 36)
+        font_label = ImageFont.truetype(font_path, 22)
+        font_value = ImageFont.truetype(font_path, 38)
+        font_pnl = ImageFont.truetype(font_path, 48)
+        font_small = ImageFont.truetype(font_path, 18)
     except Exception as e:
         font_title = font_label = font_value = font_pnl = font_small = ImageFont.load_default()
 
