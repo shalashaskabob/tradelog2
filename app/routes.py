@@ -466,10 +466,10 @@ def edit_trade(trade_id):
 def delete_strategy(strategy_id):
     # Only get the strategy for the current user
     strategy = Strategy.query.filter_by(id=strategy_id, user_id=current_user.id).first_or_404()
-    # Only allow deletion if no trades (from any user) reference this strategy
-    trade_exists = Trade.query.filter_by(strategy_id=strategy.id).first()
+    # Only allow deletion if no trades (from the current user) reference this strategy
+    trade_exists = Trade.query.filter_by(strategy_id=strategy.id, user_id=current_user.id).first()
     if trade_exists:
-        flash('Cannot delete a strategy that is in use by any trade.', 'danger')
+        flash('Cannot delete a strategy that is in use by your trades.', 'danger')
         return redirect(url_for('main.index'))
     db.session.delete(strategy)
     db.session.commit()
