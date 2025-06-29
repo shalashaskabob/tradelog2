@@ -565,63 +565,52 @@ def share_trade(trade_id):
     glow_draw.rounded_rectangle([(2, 2), (width-2, height-2)], radius=radius-2, fill=(255, 255, 255, 15))
     card = Image.alpha_composite(card, glow_card)
 
-    # Lion logo (top left)
-    logo_path = os.path.join('app', 'static', 'lion_logo.png', 'lion_logo.png')
-    if os.path.exists(logo_path):
-        try:
-            with Image.open(logo_path).convert('RGBA') as logo:
-                logo_size = 80
-                logo.thumbnail((logo_size, logo_size))
-                card.paste(logo, (30, 20), logo)
-        except Exception as e:
-            pass
-
     # Load fonts (fallback to default if not found)
     try:
         font_title = ImageFont.truetype('arial.ttf', 36)
         font_label = ImageFont.truetype('arial.ttf', 22)
         font_value = ImageFont.truetype('arialbd.ttf', 38)
-        font_pnl = ImageFont.truetype('arialbd.ttf', 48)  # Bigger PnL font
+        font_pnl = ImageFont.truetype('arialbd.ttf', 48)
         font_small = ImageFont.truetype('arial.ttf', 18)
-    except:
+    except Exception as e:
         font_title = font_label = font_value = font_pnl = font_small = ImageFont.load_default()
 
-    # Title and branding with subtle glow
-    draw.text((130, 32), "TRADELOG", font=font_title, fill='#ffffff')
-    draw.text((130, 70), "Trade Card", font=font_label, fill='#b0b0b0')
+    # Draw all text on the final card image after all compositing
+    draw = ImageDraw.Draw(card)
 
-    # Add subtle accent line
-    draw.line([(130, 95), (280, 95)], fill='#4a90e2', width=2)
+    # DEBUG: Draw a bright rectangle behind the title to confirm text visibility
+    try:
+        draw.rectangle([(120, 25), (350, 75)], fill=(255, 255, 0, 180))
+        draw.text((130, 32), "TRADELOG", font=font_title, fill='#000000')
+    except Exception as e:
+        print('Error drawing title:', e)
 
-    # Main trade info (left side)
-    y0 = 120
-    draw.text((40, y0), f"Symbol:", font=font_label, fill='#b0b0b0')
-    draw.text((180, y0), trade.ticker, font=font_value, fill='#ffffff')
-    draw.text((40, y0+40), f"Direction:", font=font_label, fill='#b0b0b0')
-    draw.text((180, y0+40), trade.direction, font=font_value, fill='#ffffff')
-    draw.text((40, y0+80), f"Entry:", font=font_label, fill='#b0b0b0')
-    draw.text((180, y0+80), f"{trade.entry_price}", font=font_value, fill='#ffffff')
-    draw.text((40, y0+120), f"Exit:", font=font_label, fill='#b0b0b0')
-    draw.text((180, y0+120), f"{trade.exit_price if trade.exit_price is not None else '-'}", font=font_value, fill='#ffffff')
+    try:
+        draw.text((130, 70), "Trade Card", font=font_label, fill='#ffffff')
+        draw.line([(130, 95), (280, 95)], fill='#4a90e2', width=2)
 
-    # PnL section with background highlight
-    pnl_color = '#00d4aa' if trade.pnl and trade.pnl > 0 else '#ff6b6b' if trade.pnl and trade.pnl < 0 else '#ffffff'
-    pnl_bg_color = (0, 212, 170, 30) if trade.pnl and trade.pnl > 0 else (255, 107, 107, 30) if trade.pnl and trade.pnl < 0 else (255, 255, 255, 30)
-    
-    # PnL background rectangle
-    pnl_rect = [(380, y0-10), (width-30, y0+80)]
-    pnl_bg = Image.new('RGBA', (width, height), color=(0, 0, 0, 0))
-    pnl_bg_draw = ImageDraw.Draw(pnl_bg)
-    pnl_bg_draw.rounded_rectangle(pnl_rect, radius=10, fill=pnl_bg_color)
-    card = Image.alpha_composite(card, pnl_bg)
-    
-    draw.text((380, y0), "PnL:", font=font_label, fill='#b0b0b0')
-    draw.text((380, y0+50), f"{trade.pnl if trade.pnl is not None else '-'}", font=font_pnl, fill=pnl_color)
+        # Main trade info (left side)
+        y0 = 120
+        draw.text((40, y0), f"Symbol:", font=font_label, fill='#ffffff')
+        draw.text((180, y0), trade.ticker, font=font_value, fill='#ffffff')
+        draw.text((40, y0+40), f"Direction:", font=font_label, fill='#ffffff')
+        draw.text((180, y0+40), trade.direction, font=font_value, fill='#ffffff')
+        draw.text((40, y0+80), f"Entry:", font=font_label, fill='#ffffff')
+        draw.text((180, y0+80), f"{trade.entry_price}", font=font_value, fill='#ffffff')
+        draw.text((40, y0+120), f"Exit:", font=font_label, fill='#ffffff')
+        draw.text((180, y0+120), f"{trade.exit_price if trade.exit_price is not None else '-'}", font=font_value, fill='#ffffff')
 
-    # Strategy and date
-    draw.text((380, y0+110), f"Strategy:", font=font_label, fill='#b0b0b0')
-    draw.text((380, y0+140), trade.strategy.name if trade.strategy else '-', font=font_small, fill='#ffffff')
-    draw.text((40, height-40), f"Date: {trade.entry_date.strftime('%Y-%m-%d')}", font=font_small, fill='#888888')
+        # PnL section
+        pnl_color = '#00d4aa' if trade.pnl and trade.pnl > 0 else '#ff6b6b' if trade.pnl and trade.pnl < 0 else '#ffffff'
+        draw.text((380, y0), "PnL:", font=font_label, fill='#ffffff')
+        draw.text((380, y0+50), f"{trade.pnl if trade.pnl is not None else '-'}", font=font_pnl, fill=pnl_color)
+
+        # Strategy and date
+        draw.text((380, y0+110), f"Strategy:", font=font_label, fill='#ffffff')
+        draw.text((380, y0+140), trade.strategy.name if trade.strategy else '-', font=font_small, fill='#ffffff')
+        draw.text((40, height-40), f"Date: {trade.entry_date.strftime('%Y-%m-%d')}", font=font_small, fill='#ffffff')
+    except Exception as e:
+        print('Error drawing text:', e)
 
     # Optionally, add screenshot thumbnail if available
     if trade.screenshot:
@@ -639,9 +628,20 @@ def share_trade(trade_id):
             except Exception as e:
                 pass
 
+    # Lion logo (top left)
+    logo_path = os.path.join('app', 'static', 'lion_logo.png', 'lion_logo.png')
+    if os.path.exists(logo_path):
+        try:
+            with Image.open(logo_path).convert('RGBA') as logo:
+                logo_size = 80
+                logo.thumbnail((logo_size, logo_size))
+                card.paste(logo, (30, 20), logo)
+        except Exception as e:
+            pass
+
     # Output to BytesIO
     img_io = BytesIO()
-    card = card.convert('RGB')  # Remove alpha for JPEG/PNG
+    # Save as PNG with alpha preserved
     card.save(img_io, 'PNG')
     img_io.seek(0)
     return send_file(img_io, mimetype='image/png', as_attachment=False, download_name=f'trade_{trade.id}_card.png') 
