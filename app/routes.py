@@ -555,7 +555,7 @@ def share_trade(trade_id):
     card.putalpha(mask)
 
     # Lion logo (top left)
-    logo_path = os.path.join('app', 'static', 'lion_logo.png')
+    logo_path = os.path.join('app', 'static', 'lion_logo.png', 'lion_logo.png')
     if os.path.exists(logo_path):
         try:
             with Image.open(logo_path).convert('RGBA') as logo:
@@ -570,15 +570,16 @@ def share_trade(trade_id):
         font_title = ImageFont.truetype('arial.ttf', 36)
         font_label = ImageFont.truetype('arial.ttf', 22)
         font_value = ImageFont.truetype('arialbd.ttf', 38)
+        font_pnl = ImageFont.truetype('arialbd.ttf', 48)  # Bigger PnL font
         font_small = ImageFont.truetype('arial.ttf', 18)
     except:
-        font_title = font_label = font_value = font_small = ImageFont.load_default()
+        font_title = font_label = font_value = font_pnl = font_small = ImageFont.load_default()
 
     # Title and branding
     draw.text((130, 32), "TRADELOG", font=font_title, fill='#fff')
     draw.text((130, 70), "Trade Card", font=font_label, fill='#aaa')
 
-    # Main trade info
+    # Main trade info (left side)
     y0 = 120
     draw.text((40, y0), f"Symbol:", font=font_label, fill='#aaa')
     draw.text((180, y0), trade.ticker, font=font_value, fill='#fff')
@@ -589,14 +590,14 @@ def share_trade(trade_id):
     draw.text((40, y0+120), f"Exit:", font=font_label, fill='#aaa')
     draw.text((180, y0+120), f"{trade.exit_price if trade.exit_price is not None else '-'}", font=font_value, fill='#fff')
 
-    # PnL (big and bold)
+    # PnL (big and bold - right side)
     pnl_color = '#2ecc40' if trade.pnl and trade.pnl > 0 else '#ff4136' if trade.pnl and trade.pnl < 0 else '#fff'
     draw.text((380, y0), "PnL:", font=font_label, fill='#aaa')
-    draw.text((380, y0+40), f"{trade.pnl if trade.pnl is not None else '-'}", font=font_value, fill=pnl_color)
+    draw.text((380, y0+50), f"{trade.pnl if trade.pnl is not None else '-'}", font=font_pnl, fill=pnl_color)
 
     # Strategy and date
-    draw.text((380, y0+90), f"Strategy:", font=font_label, fill='#aaa')
-    draw.text((380, y0+120), trade.strategy.name if trade.strategy else '-', font=font_small, fill='#fff')
+    draw.text((380, y0+110), f"Strategy:", font=font_label, fill='#aaa')
+    draw.text((380, y0+140), trade.strategy.name if trade.strategy else '-', font=font_small, fill='#fff')
     draw.text((40, height-40), f"Date: {trade.entry_date.strftime('%Y-%m-%d')}", font=font_small, fill='#aaa')
 
     # Optionally, add screenshot thumbnail if available
