@@ -319,3 +319,68 @@ def admin_dashboard():
         users=users,
         recent_users=recent_users
     ) 
+
+@bp.route('/edit_trade/<int:trade_id>', methods=['GET', 'POST'])
+@login_required
+def edit_trade(trade_id):
+    trade = Trade.query.get_or_404(trade_id)
+    if trade.user_id != current_user.id:
+        flash('You are not authorized to edit this trade.', 'danger')
+        return redirect(url_for('main.index'))
+    if request.method == 'POST':
+        try:
+            trade.ticker = request.form['ticker']
+            trade.entry_date = datetime.strptime(request.form['entry_date'], '%Y-%m-%dT%H:%M')
+            trade.entry_price = float(request.form['entry_price'])
+            trade.position_size = float(request.form['position_size'])
+            trade.direction = request.form['direction']
+            trade.exit_date = datetime.strptime(request.form['exit_date'], '%Y-%m-%dT%H:%M') if request.form.get('exit_date') else None
+            trade.exit_price = float(request.form['exit_price']) if request.form.get('exit_price') else None
+            trade.notes = request.form.get('notes')
+            # Strategy (user-specific)
+            strategy_name = request.form.get('strategy_choice')
+            if strategy_name == '__new__':
+                strategy_name = request.form.get('strategy_new_input')
+            if not strategy_name:
+                flash('Strategy name cannot be empty.', 'danger')
+                return redirect(url_for('main.edit_trade', trade_id=trade.id))
+            strategy = Strategy.query.filter_by(name=strategy_name, user_id=current_user.id).first()
+            if not strategy:
+                strategy = Strategy(name=strategy_name, user_id=current_user.id)
+                db.session.add(strategy)
+            trade.strategy = strategy
+            # Screenshot update
+            file = request.files.get('screenshot')
+            if file and file.filename:
+                user_id = current_user.id
+                trade_id = trade.id
+                trade_folder = os.path.join(UPLOAD_FOLDER, str(user_id), str(trade_id))
+                os.makedirs(trade_folder, exist_ok=True)
+                ext = os.path.splitext(file.filename)[1].lower()
+                img_filename = f'screenshot{ext}'
+                img_path = os.path.join(trade_folder, img_filename)
+                file.save(img_path)
+                thumb_filename = f'thumb{ext}'
+                thumb_path = os.path.join(trade_folder, thumb_filename)
+                with Image.open(img_path) as img:
+                    img.thumbnail(THUMB_SIZE)
+                    img.save(thumb_path)
+                trade.screenshot = f'{user_id}/{trade_id}/{img_filename}'
+            # Recalculate PnL
+            trade.pnl = trade.calculate_pnl
+            db.session.commit()
+            flash('Trade updated successfully!', 'success')
+            return redirect(url_for('main.index'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating trade: {e}', 'danger')
+    # Only show current user's strategies
+    strategies = Strategy.query.filter_by(user_id=current_user.id).order_by(Strategy.name).all()
+    return render_template(
+        'add_trade.html',
+        title='Edit Trade',
+        strategies=strategies,
+        symbols=FUTURES_SYMBOLS,
+        trade=trade,
+        edit_mode=True
+    ) 
