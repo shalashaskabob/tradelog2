@@ -9,6 +9,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from calendar import monthrange
 import calendar as cal
 from io import BytesIO
+import sys
 
 FUTURES_SYMBOLS = [
     'MNQ', 'NQ', 'MES', 'ES', 'RTY', 'M2K', 'CL', 'MCL', 'GC', 'MGC', 'SI', 
@@ -536,50 +537,82 @@ def share_trade(trade_id):
         flash('You are not authorized to share this trade.', 'danger')
         return redirect(url_for('main.index'))
 
-    # Use pre-designed card background as-is (preserve white in lion head)
+    # Use pre-designed card background as-is (no masking needed)
     bg_path = os.path.join('app', 'static', 'card_bg.png')
     with Image.open(bg_path).convert('RGBA') as base_img:
         card = base_img.copy()
+    width, height = card.size
 
-    # Load Roboto font (bold weight for all text)
+    # Load Roboto font (log error if not found)
     font_path = os.path.join('app', 'static', 'fonts', 'Roboto-VariableFont_wdth,wght.ttf')
     try:
-        font_title = ImageFont.truetype(font_path, 36, layout_engine=ImageFont.LAYOUT_BASIC)
-        font_label = ImageFont.truetype(font_path, 22, layout_engine=ImageFont.LAYOUT_BASIC)
-        font_value = ImageFont.truetype(font_path, 32, layout_engine=ImageFont.LAYOUT_BASIC)
-        font_pnl = ImageFont.truetype(font_path, 64, layout_engine=ImageFont.LAYOUT_BASIC)
-        font_small = ImageFont.truetype(font_path, 18, layout_engine=ImageFont.LAYOUT_BASIC)
+        font_title = ImageFont.truetype(font_path, 64, layout_engine=ImageFont.LAYOUT_BASIC)
+        font_label = ImageFont.truetype(font_path, 36, layout_engine=ImageFont.LAYOUT_BASIC)
+        font_value = ImageFont.truetype(font_path, 48, layout_engine=ImageFont.LAYOUT_BASIC)
+        font_pnl = ImageFont.truetype(font_path, 96, layout_engine=ImageFont.LAYOUT_BASIC)
+        font_small = ImageFont.truetype(font_path, 28, layout_engine=ImageFont.LAYOUT_BASIC)
     except Exception as e:
+        print(f"[ERROR] Could not load Roboto font: {e}", file=sys.stderr)
         font_title = font_label = font_value = font_pnl = font_small = ImageFont.load_default()
 
     draw = ImageDraw.Draw(card)
 
-    # --- Overlay text and values as before (positions may need adjustment for new card) ---
-    draw.text((180, 60), "TRADELOG", font=font_title, fill='#f7b32b')
-    draw.text((180, 110), trade.ticker, font=font_value, fill='#fff')
+    # Centered layout variables
+    center_x = width // 2
+    y = 80
+
+    # TRADELOG branding (centered top)
+    title_text = "TRADELOG"
+    title_w, title_h = draw.textsize(title_text, font=font_title)
+    draw.text((center_x - title_w//2, y), title_text, font=font_title, fill='#f7b32b')
+    y += title_h + 10
+
+    # Ticker and badge (centered)
+    ticker_text = trade.ticker
+    ticker_w, ticker_h = draw.textsize(ticker_text, font=font_value)
+    draw.text((center_x - ticker_w//2, y), ticker_text, font=font_value, fill='#fff')
     badge_text = trade.direction.capitalize()
     badge_color = (0, 212, 170, 255) if badge_text == 'Long' else (255, 107, 107, 255)
-    badge_w, badge_h = 80, 32
-    badge_x = 180 + draw.textlength(trade.ticker, font=font_value) + 18
-    badge_y = 114
+    badge_w, badge_h = 120, 44
+    badge_x = center_x + ticker_w//2 + 20
+    badge_y = y + ticker_h//2 - badge_h//2
     badge = Image.new('RGBA', (badge_w, badge_h), (0,0,0,0))
     badge_draw = ImageDraw.Draw(badge)
-    badge_draw.rounded_rectangle([(0,0),(badge_w,badge_h)], radius=16, fill=badge_color)
+    badge_draw.rounded_rectangle([(0,0),(badge_w,badge_h)], radius=22, fill=badge_color)
     card.paste(badge, (int(badge_x), int(badge_y)), badge)
-    draw.text((badge_x+16, badge_y+4), badge_text, font=font_label, fill='#fff')
+    badge_text_w, badge_text_h = draw.textsize(badge_text, font=font_label)
+    draw.text((badge_x + (badge_w-badge_text_w)//2, badge_y + (badge_h-badge_text_h)//2), badge_text, font=font_label, fill='#fff')
+    y += ticker_h + 30
+
+    # Large PnL (centered, colored)
     pnl_color = '#00d4aa' if trade.pnl and trade.pnl > 0 else '#ff6b6b' if trade.pnl and trade.pnl < 0 else '#fff'
     pnl_text = f"{trade.pnl if trade.pnl is not None else '-'}"
-    draw.text((180, 170), "PnL", font=font_label, fill='#b0b0b0')
-    draw.text((180, 200), pnl_text, font=font_pnl, fill=pnl_color)
-    price_y = 290
-    col1_x = 180
-    col2_x = 340
+    pnl_label = "PnL"
+    pnl_label_w, pnl_label_h = draw.textsize(pnl_label, font=font_label)
+    pnl_text_w, pnl_text_h = draw.textsize(pnl_text, font=font_pnl)
+    draw.text((center_x - pnl_label_w//2, y), pnl_label, font=font_label, fill='#b0b0b0')
+    y += pnl_label_h + 5
+    draw.text((center_x - pnl_text_w//2, y), pnl_text, font=font_pnl, fill=pnl_color)
+    y += pnl_text_h + 30
+
+    # Entry/Exit price (two columns, centered below PnL)
+    price_y = y
+    col_gap = 120
+    col1_x = center_x - col_gap
+    col2_x = center_x + col_gap
     draw.text((col1_x, price_y), "Entry Price", font=font_label, fill='#b0b0b0')
     draw.text((col2_x, price_y), "Exit Price", font=font_label, fill='#b0b0b0')
-    draw.text((col1_x, price_y+32), f"{trade.entry_price}", font=font_value, fill='#fff')
-    draw.text((col2_x, price_y+32), f"{trade.exit_price if trade.exit_price is not None else '-'}", font=font_value, fill='#fff')
-    draw.text((180, card.height-60), f"Strategy: {trade.strategy.name if trade.strategy else '-'}", font=font_small, fill='#b0b0b0')
-    draw.text((180, card.height-32), f"Date: {trade.entry_date.strftime('%Y-%m-%d')}", font=font_small, fill='#b0b0b0')
+    draw.text((col1_x, price_y+40), f"{trade.entry_price}", font=font_value, fill='#fff')
+    draw.text((col2_x, price_y+40), f"{trade.exit_price if trade.exit_price is not None else '-'}", font=font_value, fill='#fff')
+
+    # Strategy and date (bottom center)
+    bottom_y = height - 80
+    strat_text = f"Strategy: {trade.strategy.name if trade.strategy else '-'}"
+    date_text = f"Date: {trade.entry_date.strftime('%Y-%m-%d')}"
+    strat_w, _ = draw.textsize(strat_text, font=font_small)
+    date_w, _ = draw.textsize(date_text, font=font_small)
+    draw.text((center_x - strat_w//2, bottom_y), strat_text, font=font_small, fill='#b0b0b0')
+    draw.text((center_x - date_w//2, bottom_y+32), date_text, font=font_small, fill='#b0b0b0')
 
     # Screenshot thumbnail (bottom right, above logo)
     if trade.screenshot:
