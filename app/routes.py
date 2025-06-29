@@ -133,22 +133,25 @@ def add_strategy():
 @bp.route('/statistics')
 @login_required
 def statistics():
-    trades = Trade.query.filter_by(user_id=current_user.id).order_by(Trade.entry_date).all()
+    trades = Trade.query.filter_by(user_id=current_user.id).all()
     if not trades:
         return render_template('statistics.html', title='Statistics', no_trades=True)
 
+    # Sort trades by execution date (exit_date if present, else entry_date)
+    trades_sorted = sorted(trades, key=lambda t: t.exit_date or t.entry_date)
+
     # --- Basic Stats ---
-    total_trades = len(trades)
-    winning_trades = [t for t in trades if t.pnl is not None and t.pnl > 0]
-    losing_trades = [t for t in trades if t.pnl is not None and t.pnl < 0]
-    breakeven_trades = [t for t in trades if t.pnl is not None and t.pnl == 0]
+    total_trades = len(trades_sorted)
+    winning_trades = [t for t in trades_sorted if t.pnl is not None and t.pnl > 0]
+    losing_trades = [t for t in trades_sorted if t.pnl is not None and t.pnl < 0]
+    breakeven_trades = [t for t in trades_sorted if t.pnl is not None and t.pnl == 0]
 
     total_wins = len(winning_trades)
     total_losses = len(losing_trades)
     win_rate = (total_wins / total_trades) * 100 if total_trades > 0 else 0
 
     # --- PnL Stats ---
-    all_pnl = [t.pnl for t in trades if t.pnl is not None]
+    all_pnl = [t.pnl for t in trades_sorted if t.pnl is not None]
     total_pnl = sum(all_pnl)
     gross_profit = sum(t.pnl for t in winning_trades)
     gross_loss = sum(t.pnl for t in losing_trades)
@@ -166,11 +169,11 @@ def statistics():
     largest_loss = min(losing_trades, key=lambda t: t.pnl, default=None)
 
     # --- Time & Direction Stats ---
-    holding_times = [(t.exit_date - t.entry_date).total_seconds() for t in trades if t.exit_date]
+    holding_times = [(t.exit_date - t.entry_date).total_seconds() for t in trades_sorted if t.exit_date]
     avg_holding_time_seconds = sum(holding_times) / len(holding_times) if holding_times else 0
 
-    long_trades = [t for t in trades if t.direction == 'Long']
-    short_trades = [t for t in trades if t.direction == 'Short']
+    long_trades = [t for t in trades_sorted if t.direction == 'Long']
+    short_trades = [t for t in trades_sorted if t.direction == 'Short']
     long_wins = sum(1 for t in long_trades if t.pnl is not None and t.pnl > 0)
     short_wins = sum(1 for t in short_trades if t.pnl is not None and t.pnl > 0)
     long_win_rate = (long_wins / len(long_trades)) * 100 if long_trades else 0
@@ -180,7 +183,7 @@ def statistics():
     cumulative_pnl = []
     current_pnl = 0
     dates = []
-    for t in trades:
+    for t in trades_sorted:
         ref_date = t.exit_date or t.entry_date
         dates.append(ref_date.strftime('%Y-%m-%d %H:%M'))
         if t.pnl is not None:
@@ -189,7 +192,7 @@ def statistics():
 
     # --- Chart 2: PnL by Symbol ---
     symbol_pnl = {}
-    for t in trades:
+    for t in trades_sorted:
         symbol_pnl.setdefault(t.ticker, 0)
         symbol_pnl[t.ticker] += t.pnl or 0
     symbol_names = list(symbol_pnl.keys())
@@ -197,7 +200,7 @@ def statistics():
     
     # --- Chart 3: PnL by Strategy ---
     strategy_pnl = {}
-    for t in trades:
+    for t in trades_sorted:
         strategy_pnl.setdefault(t.strategy.name, 0)
         strategy_pnl[t.strategy.name] += t.pnl or 0
     strategy_names = list(strategy_pnl.keys())
@@ -211,7 +214,7 @@ def statistics():
     
     # --- Other ---
     from collections import Counter
-    symbol_counts = Counter(t.ticker for t in trades)
+    symbol_counts = Counter(t.ticker for t in trades_sorted)
     most_traded_symbol = symbol_counts.most_common(1)[0][0] if symbol_counts else 'N/A'
 
 
