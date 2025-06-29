@@ -14,30 +14,30 @@
             </div>
             <div class="form-group">
                 <label for="entry_date" class="form-label mt-4">Entry Date</label>
-                <input type="datetime-local" class="form-control" id="entry_date" name="entry_date" required>
+                <input type="datetime-local" class="form-control" id="entry_date" name="entry_date" required value="{{ trade.entry_date.strftime('%Y-%m-%dT%H:%M') if edit_mode and trade else '' }}">
             </div>
             <div class="form-group">
                 <label for="entry_price" class="form-label mt-4">Entry Price</label>
-                <input type="number" step="any" class="form-control" id="entry_price" name="entry_price" required>
+                <input type="number" step="any" class="form-control" id="entry_price" name="entry_price" required value="{{ trade.entry_price if edit_mode and trade else '' }}">
             </div>
             <div class="form-group">
                 <label for="position_size" class="form-label mt-4">Position Size</label>
-                <input type="number" step="any" class="form-control" id="position_size" name="position_size" required>
+                <input type="number" step="any" class="form-control" id="position_size" name="position_size" required value="{{ trade.position_size if edit_mode and trade else '' }}">
             </div>
             <div class="form-group">
                 <label for="direction" class="form-label mt-4">Direction</label>
                 <select class="form-select" id="direction" name="direction">
-                    <option>Long</option>
-                    <option>Short</option>
+                    <option {% if edit_mode and trade and trade.direction == 'Long' %}selected{% endif %}>Long</option>
+                    <option {% if edit_mode and trade and trade.direction == 'Short' %}selected{% endif %}>Short</option>
                 </select>
             </div>
             <div class="form-group">
                 <label for="exit_date" class="form-label mt-4">Exit Date</label>
-                <input type="datetime-local" class="form-control" id="exit_date" name="exit_date">
+                <input type="datetime-local" class="form-control" id="exit_date" name="exit_date" value="{{ trade.exit_date.strftime('%Y-%m-%dT%H:%M') if edit_mode and trade and trade.exit_date else '' }}">
             </div>
             <div class="form-group">
                 <label for="exit_price" class="form-label mt-4">Exit Price</label>
-                <input type="number" step="any" class="form-control" id="exit_price" name="exit_price">
+                <input type="number" step="any" class="form-control" id="exit_price" name="exit_price" value="{{ trade.exit_price if edit_mode and trade and trade.exit_price else '' }}">
             </div>
             <div class="form-group">
                 <label class="form-label mt-4">Strategy</label>
@@ -60,13 +60,19 @@
             </div>
             <div class="form-group">
                 <label for="notes" class="form-label mt-4">Notes</label>
-                <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                <textarea class="form-control" id="notes" name="notes" rows="3">{{ trade.notes if edit_mode and trade else '' }}</textarea>
             </div>
             <div class="form-group">
                 <label for="screenshot" class="form-label mt-4">Screenshot</label>
+                {% if edit_mode and trade and trade.screenshot %}
+                    <div class="mb-2">
+                        <img src="{{ url_for('main.uploaded_file', filepath=trade.screenshot.replace('screenshot', 'thumb')) }}" alt="Current Screenshot" class="img-thumbnail" style="width: 80px; height: 80px;">
+                        <span class="text-muted">Current screenshot (will be replaced if you upload a new one)</span>
+                    </div>
+                {% endif %}
                 <input type="file" class="form-control" id="screenshot" name="screenshot" accept="image/*">
             </div>
-            <button type="submit" class="btn btn-primary mt-4">Add Trade</button>
+            <button type="submit" class="btn btn-primary mt-4">{{ 'Update Trade' if edit_mode else 'Add Trade' }}</button>
         </fieldset>
     </form>
 {% endblock %}
