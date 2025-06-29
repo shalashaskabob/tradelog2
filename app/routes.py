@@ -270,8 +270,10 @@ def change_password():
 @login_required
 def admin_dashboard():
     """Admin dashboard to view user statistics."""
-    # For now, allow any authenticated user to access
-    # In production, you'd want to add admin role checking
+    # Check if user is admin
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('main.index'))
     
     # Get user statistics
     total_users = User.query.count()
@@ -282,8 +284,9 @@ def admin_dashboard():
     users = db.session.query(
         User.id, 
         User.username, 
+        User.is_admin,
         db.func.count(Trade.id).label('trade_count')
-    ).outerjoin(Trade).group_by(User.id).order_by(User.id).all()
+    ).outerjoin(Trade).group_by(User.id, User.username, User.is_admin).order_by(User.id).all()
     
     # Get recent registrations (last 10 users)
     recent_users = User.query.order_by(User.id.desc()).limit(10).all()

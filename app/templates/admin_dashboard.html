@@ -50,6 +50,7 @@
                                     <th>Username</th>
                                     <th>Trade Count</th>
                                     <th>Status</th>
+                                    <th>Admin</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -67,10 +68,17 @@
                                             <span class="badge bg-warning">Inactive</span>
                                         {% endif %}
                                     </td>
+                                    <td>
+                                        {% if user.is_admin %}
+                                            <span class="badge bg-danger">Admin</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">User</span>
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% else %}
                                 <tr>
-                                    <td colspan="4" class="text-center">No users found.</td>
+                                    <td colspan="5" class="text-center">No users found.</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

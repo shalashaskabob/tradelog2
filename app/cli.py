@@ -36,4 +36,30 @@ def register_commands(app):
     def count_users_command():
         """Counts the total number of registered users."""
         count = User.query.count()
-        click.echo(f"Total registered users: {count}") 
+        click.echo(f"Total registered users: {count}")
+
+    @app.cli.command('make-admin')
+    @click.argument('username')
+    def make_admin_command(username):
+        """Makes a user an admin."""
+        user = User.query.filter_by(username=username).first()
+        if user is None:
+            click.echo(f"Error: User '{username}' not found.")
+            return
+        
+        user.is_admin = True
+        db.session.commit()
+        click.echo(f"User '{username}' is now an admin.")
+
+    @app.cli.command('remove-admin')
+    @click.argument('username')
+    def remove_admin_command(username):
+        """Removes admin privileges from a user."""
+        user = User.query.filter_by(username=username).first()
+        if user is None:
+            click.echo(f"Error: User '{username}' not found.")
+            return
+        
+        user.is_admin = False
+        db.session.commit()
+        click.echo(f"Admin privileges removed from user '{username}'.") 
