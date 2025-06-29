@@ -4,4 +4,5 @@ Flask-Migrate
 gunicorn
 Flask-Login
 Flask-WTF
-python-dotenv 
+python-dotenv
+Pillow 
