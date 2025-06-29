@@ -536,27 +536,10 @@ def share_trade(trade_id):
         flash('You are not authorized to share this trade.', 'danger')
         return redirect(url_for('main.index'))
 
-    # Card dimensions
-    width, height = 600, 340
-    card = Image.new('RGBA', (width, height), color=(0, 0, 0, 0))
-    draw = ImageDraw.Draw(card)
-
-    # Bybit-style dark gradient background
-    bg = Image.new('RGBA', (width, height), color=(0, 0, 0, 0))
-    bg_draw = ImageDraw.Draw(bg)
-    for y in range(height):
-        r = int(24 + 16 * y / height)
-        g = int(26 + 12 * y / height)
-        b = int(32 + 24 * y / height)
-        bg_draw.line([(0, y), (width, y)], fill=(r, g, b, 255))
-    card = Image.alpha_composite(card, bg)
-
-    # Rounded corners mask
-    radius = 28
-    mask = Image.new('L', (width, height), 0)
-    mask_draw = ImageDraw.Draw(mask)
-    mask_draw.rounded_rectangle([(0, 0), (width, height)], radius=radius, fill=255)
-    card.putalpha(mask)
+    # Use pre-designed card background as-is (preserve white in lion head)
+    bg_path = os.path.join('app', 'static', 'card_bg.png')
+    with Image.open(bg_path).convert('RGBA') as base_img:
+        card = base_img.copy()
 
     # Load Roboto font (bold weight for all text)
     font_path = os.path.join('app', 'static', 'fonts', 'Roboto-VariableFont_wdth,wght.ttf')
@@ -571,44 +554,32 @@ def share_trade(trade_id):
 
     draw = ImageDraw.Draw(card)
 
-    # TRADELOG branding (top left)
-    draw.text((36, 28), "TRADELOG", font=font_title, fill='#f7b32b')
-
-    # Ticker and badge (below branding)
-    ticker_y = 80
-    draw.text((36, ticker_y), trade.ticker, font=font_value, fill='#fff')
-    # Long/Short badge
+    # --- Overlay text and values as before (positions may need adjustment for new card) ---
+    draw.text((180, 60), "TRADELOG", font=font_title, fill='#f7b32b')
+    draw.text((180, 110), trade.ticker, font=font_value, fill='#fff')
     badge_text = trade.direction.capitalize()
     badge_color = (0, 212, 170, 255) if badge_text == 'Long' else (255, 107, 107, 255)
     badge_w, badge_h = 80, 32
-    badge_x = 36 + draw.textlength(trade.ticker, font=font_value) + 18
-    badge_y = ticker_y + 4
+    badge_x = 180 + draw.textlength(trade.ticker, font=font_value) + 18
+    badge_y = 114
     badge = Image.new('RGBA', (badge_w, badge_h), (0,0,0,0))
     badge_draw = ImageDraw.Draw(badge)
     badge_draw.rounded_rectangle([(0,0),(badge_w,badge_h)], radius=16, fill=badge_color)
     card.paste(badge, (int(badge_x), int(badge_y)), badge)
     draw.text((badge_x+16, badge_y+4), badge_text, font=font_label, fill='#fff')
-
-    # Large PnL (centered, colored)
     pnl_color = '#00d4aa' if trade.pnl and trade.pnl > 0 else '#ff6b6b' if trade.pnl and trade.pnl < 0 else '#fff'
     pnl_text = f"{trade.pnl if trade.pnl is not None else '-'}"
-    pnl_x = 36
-    pnl_y = 140
-    draw.text((pnl_x, pnl_y), "PnL", font=font_label, fill='#b0b0b0')
-    draw.text((pnl_x, pnl_y+32), pnl_text, font=font_pnl, fill=pnl_color)
-
-    # Entry/Exit price (two columns below PnL)
-    price_y = pnl_y + 120
-    col1_x = 36
-    col2_x = 220
+    draw.text((180, 170), "PnL", font=font_label, fill='#b0b0b0')
+    draw.text((180, 200), pnl_text, font=font_pnl, fill=pnl_color)
+    price_y = 290
+    col1_x = 180
+    col2_x = 340
     draw.text((col1_x, price_y), "Entry Price", font=font_label, fill='#b0b0b0')
     draw.text((col2_x, price_y), "Exit Price", font=font_label, fill='#b0b0b0')
     draw.text((col1_x, price_y+32), f"{trade.entry_price}", font=font_value, fill='#fff')
     draw.text((col2_x, price_y+32), f"{trade.exit_price if trade.exit_price is not None else '-'}", font=font_value, fill='#fff')
-
-    # Strategy and date (bottom left)
-    draw.text((36, height-60), f"Strategy: {trade.strategy.name if trade.strategy else '-'}", font=font_small, fill='#b0b0b0')
-    draw.text((36, height-32), f"Date: {trade.entry_date.strftime('%Y-%m-%d')}", font=font_small, fill='#b0b0b0')
+    draw.text((180, card.height-60), f"Strategy: {trade.strategy.name if trade.strategy else '-'}", font=font_small, fill='#b0b0b0')
+    draw.text((180, card.height-32), f"Date: {trade.entry_date.strftime('%Y-%m-%d')}", font=font_small, fill='#b0b0b0')
 
     # Screenshot thumbnail (bottom right, above logo)
     if trade.screenshot:
@@ -621,7 +592,7 @@ def share_trade(trade_id):
                     screenshot_mask_draw = ImageDraw.Draw(screenshot_mask)
                     screenshot_mask_draw.rounded_rectangle([(0, 0), (80, 80)], radius=12, fill=255)
                     img.putalpha(screenshot_mask)
-                    card.paste(img, (width-110, height-130), img)
+                    card.paste(img, (card.width-110, card.height-130), img)
             except Exception as e:
                 pass
 
