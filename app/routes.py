@@ -460,3 +460,15 @@ def edit_trade(trade_id):
         trade=trade,
         edit_mode=True
     ) 
+
+@bp.route('/delete_strategy/<int:strategy_id>', methods=['POST'])
+@login_required
+def delete_strategy(strategy_id):
+    strategy = Strategy.query.filter_by(id=strategy_id, user_id=current_user.id).first_or_404()
+    if strategy.trades.count() > 0:
+        flash('Cannot delete a strategy that is in use by trades.', 'danger')
+        return redirect(url_for('main.index'))
+    db.session.delete(strategy)
+    db.session.commit()
+    flash('Strategy deleted successfully.', 'success')
+    return redirect(url_for('main.index')) 
