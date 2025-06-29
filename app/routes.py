@@ -538,53 +538,81 @@ def share_trade(trade_id):
 
     # Card dimensions
     width, height = 600, 340
-    card = Image.new('RGB', (width, height), color='#222')
+    card = Image.new('RGBA', (width, height), color=(34, 34, 34, 255))
     draw = ImageDraw.Draw(card)
+
+    # Gradient background
+    for y in range(height):
+        r = int(34 + (30 * y / height))
+        g = int(34 + (60 * y / height))
+        b = int(34 + (90 * y / height))
+        draw.line([(0, y), (width, y)], fill=(r, g, b, 255))
+
+    # Rounded corners mask
+    mask = Image.new('L', (width, height), 0)
+    mask_draw = ImageDraw.Draw(mask)
+    mask_draw.rounded_rectangle([(0, 0), (width, height)], radius=36, fill=255)
+    card.putalpha(mask)
+
+    # Lion logo (top left)
+    logo_path = os.path.join('app', 'static', 'lion_logo.png')
+    if os.path.exists(logo_path):
+        try:
+            with Image.open(logo_path).convert('RGBA') as logo:
+                logo_size = 80
+                logo.thumbnail((logo_size, logo_size))
+                card.paste(logo, (30, 20), logo)
+        except Exception as e:
+            pass
 
     # Load fonts (fallback to default if not found)
     try:
         font_title = ImageFont.truetype('arial.ttf', 36)
         font_label = ImageFont.truetype('arial.ttf', 22)
-        font_value = ImageFont.truetype('arial.ttf', 28)
+        font_value = ImageFont.truetype('arialbd.ttf', 38)
         font_small = ImageFont.truetype('arial.ttf', 18)
     except:
         font_title = font_label = font_value = font_small = ImageFont.load_default()
 
-    # Draw card content
-    draw.text((30, 20), f"Trade Result", font=font_title, fill='#fff')
-    draw.text((30, 70), f"Symbol:", font=font_label, fill='#aaa')
-    draw.text((180, 70), trade.ticker, font=font_value, fill='#fff')
-    draw.text((30, 110), f"Direction:", font=font_label, fill='#aaa')
-    draw.text((180, 110), trade.direction, font=font_value, fill='#fff')
-    draw.text((30, 150), f"Entry:", font=font_label, fill='#aaa')
-    draw.text((180, 150), f"{trade.entry_price}", font=font_value, fill='#fff')
-    draw.text((30, 190), f"Exit:", font=font_label, fill='#aaa')
-    draw.text((180, 190), f"{trade.exit_price if trade.exit_price is not None else '-'}", font=font_value, fill='#fff')
-    draw.text((30, 230), f"PnL:", font=font_label, fill='#aaa')
+    # Title and branding
+    draw.text((130, 32), "TRADELOG", font=font_title, fill='#fff')
+    draw.text((130, 70), "Trade Card", font=font_label, fill='#aaa')
+
+    # Main trade info
+    y0 = 120
+    draw.text((40, y0), f"Symbol:", font=font_label, fill='#aaa')
+    draw.text((180, y0), trade.ticker, font=font_value, fill='#fff')
+    draw.text((40, y0+40), f"Direction:", font=font_label, fill='#aaa')
+    draw.text((180, y0+40), trade.direction, font=font_value, fill='#fff')
+    draw.text((40, y0+80), f"Entry:", font=font_label, fill='#aaa')
+    draw.text((180, y0+80), f"{trade.entry_price}", font=font_value, fill='#fff')
+    draw.text((40, y0+120), f"Exit:", font=font_label, fill='#aaa')
+    draw.text((180, y0+120), f"{trade.exit_price if trade.exit_price is not None else '-'}", font=font_value, fill='#fff')
+
+    # PnL (big and bold)
     pnl_color = '#2ecc40' if trade.pnl and trade.pnl > 0 else '#ff4136' if trade.pnl and trade.pnl < 0 else '#fff'
-    draw.text((180, 230), f"{trade.pnl if trade.pnl is not None else '-'}", font=font_value, fill=pnl_color)
-    draw.text((30, 270), f"Strategy:", font=font_label, fill='#aaa')
-    draw.text((180, 270), trade.strategy.name if trade.strategy else '-', font=font_value, fill='#fff')
-    draw.text((30, 310), f"Date:", font=font_label, fill='#aaa')
-    draw.text((180, 310), trade.entry_date.strftime('%Y-%m-%d'), font=font_small, fill='#fff')
+    draw.text((380, y0), "PnL:", font=font_label, fill='#aaa')
+    draw.text((380, y0+40), f"{trade.pnl if trade.pnl is not None else '-'}", font=font_value, fill=pnl_color)
+
+    # Strategy and date
+    draw.text((380, y0+90), f"Strategy:", font=font_label, fill='#aaa')
+    draw.text((380, y0+120), trade.strategy.name if trade.strategy else '-', font=font_small, fill='#fff')
+    draw.text((40, height-40), f"Date: {trade.entry_date.strftime('%Y-%m-%d')}", font=font_small, fill='#aaa')
 
     # Optionally, add screenshot thumbnail if available
     if trade.screenshot:
-        import os
         screenshot_path = os.path.join(UPLOAD_FOLDER, trade.screenshot.replace('\\', '/'))
         if os.path.exists(screenshot_path):
             try:
                 with Image.open(screenshot_path) as img:
-                    img.thumbnail((120, 120))
-                    card.paste(img, (width-140, 30))
+                    img.thumbnail((90, 90))
+                    card.paste(img, (width-110, height-110))
             except Exception as e:
                 pass
 
-    # Branding
-    draw.text((width-180, height-30), "tradelog", font=font_small, fill='#888')
-
     # Output to BytesIO
     img_io = BytesIO()
+    card = card.convert('RGB')  # Remove alpha for JPEG/PNG
     card.save(img_io, 'PNG')
     img_io.seek(0)
     return send_file(img_io, mimetype='image/png', as_attachment=False, download_name=f'trade_{trade.id}_card.png') 
