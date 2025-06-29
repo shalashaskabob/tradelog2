@@ -25,7 +25,10 @@ class User(UserMixin, db.Model):
 
 class Strategy(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False, unique=True)
+    name = db.Column(db.String(100), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    __table_args__ = (db.UniqueConstraint('name', 'user_id', name='_user_strategy_uc'),)
+    user = db.relationship('User', backref=db.backref('strategies', lazy='dynamic'))
 
     def __repr__(self):
         return f"Strategy('{self.name}')"
@@ -44,6 +47,7 @@ class Trade(db.Model):
     notes = db.Column(db.Text)
     pnl = db.Column(db.Float, default=0)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    screenshot = db.Column(db.String(256))  # stores filename or path
 
     TICKER_POINT_VALUES = {
         'MNQ': 2,

@@ -2,6 +2,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo, ValidationError
 from app.models import User
+from flask_wtf.file import FileField, FileAllowed
 
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
@@ -26,4 +27,7 @@ class ChangePasswordForm(FlaskForm):
     new_password = PasswordField('New Password', validators=[DataRequired()])
     new_password2 = PasswordField(
         'Repeat New Password', validators=[DataRequired(), EqualTo('new_password')])
-    submit = SubmitField('Change Password') 
+    submit = SubmitField('Change Password')
+
+class TradeForm(FlaskForm):
+    screenshot = FileField('Screenshot', validators=[FileAllowed(['jpg', 'jpeg', 'png', 'gif'], 'Images only!')]) 
