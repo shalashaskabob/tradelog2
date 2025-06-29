@@ -6,6 +6,8 @@ from datetime import datetime
 from app.forms import ChangePasswordForm
 import os
 from PIL import Image
+from calendar import monthrange
+import calendar as cal
 
 FUTURES_SYMBOLS = [
     'MNQ', 'NQ', 'MES', 'ES', 'RTY', 'M2K', 'CL', 'MCL', 'GC', 'MGC', 'SI', 
@@ -474,4 +476,46 @@ def delete_strategy(strategy_id):
     db.session.delete(strategy)
     db.session.commit()
     flash('Strategy deleted successfully.', 'success')
-    return redirect(url_for('main.index')) 
+    return redirect(url_for('main.index'))
+
+@bp.route('/calendar')
+@login_required
+def calendar():
+    from datetime import datetime, timedelta, date
+    # Get month/year from query params or default to current
+    year = request.args.get('year', type=int) or datetime.now().year
+    month = request.args.get('month', type=int) or datetime.now().month
+    # Get all trades for the user in this month
+    start_date = date(year, month, 1)
+    last_day = monthrange(year, month)[1]
+    end_date = date(year, month, last_day)
+    trades = Trade.query.filter(
+        Trade.user_id == current_user.id,
+        Trade.entry_date >= start_date,
+        Trade.entry_date < end_date + timedelta(days=1)
+    ).all()
+    # Aggregate PnL by day
+    daily_pnl = {}
+    daily_trades = {}
+    for t in trades:
+        d = t.entry_date.date()
+        daily_pnl.setdefault(d, 0)
+        daily_trades.setdefault(d, []).append(t)
+        daily_pnl[d] += t.pnl or 0
+    # Aggregate PnL by week (ISO week)
+    week_pnl = {}
+    for d, pnl in daily_pnl.items():
+        week = d.isocalendar()[1]
+        week_pnl.setdefault(week, 0)
+        week_pnl[week] += pnl
+    # Prepare calendar grid
+    cal_grid = cal.monthcalendar(year, month)
+    return render_template('calendar.html',
+        title='PnL Calendar',
+        year=year,
+        month=month,
+        cal_grid=cal_grid,
+        daily_pnl=daily_pnl,
+        daily_trades=daily_trades,
+        week_pnl=week_pnl,
+        month_name=start_date.strftime('%B')) 
