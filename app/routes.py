@@ -1,7 +1,7 @@
 from flask import render_template, redirect, url_for, request, flash, Blueprint, jsonify
 from flask_login import current_user, login_required
 from app import db
-from app.models import Trade, Strategy
+from app.models import Trade, Strategy, User
 from datetime import datetime
 from app.forms import ChangePasswordForm
 
@@ -255,11 +255,45 @@ def statistics():
 def change_password():
     form = ChangePasswordForm()
     if form.validate_on_submit():
-        if current_user.check_password(form.current_password.data):
-            current_user.set_password(form.new_password.data)
-            db.session.commit()
-            flash('Your password has been changed successfully.', 'success')
-            return redirect(url_for('main.index'))
-        else:
-            flash('Invalid current password.', 'danger')
-    return render_template('change_password.html', title='Change Password', form=form) 
+        if not current_user.check_password(form.current_password.data):
+            flash('Current password is incorrect.', 'danger')
+            return redirect(url_for('main.change_password'))
+        
+        current_user.set_password(form.new_password.data)
+        db.session.commit()
+        flash('Your password has been changed.', 'success')
+        return redirect(url_for('main.index'))
+    
+    return render_template('change_password.html', title='Change Password', form=form)
+
+@bp.route('/admin')
+@login_required
+def admin_dashboard():
+    """Admin dashboard to view user statistics."""
+    # For now, allow any authenticated user to access
+    # In production, you'd want to add admin role checking
+    
+    # Get user statistics
+    total_users = User.query.count()
+    active_users = User.query.join(Trade).distinct().count()
+    inactive_users = total_users - active_users
+    
+    # Get users with their trade counts
+    users = db.session.query(
+        User.id, 
+        User.username, 
+        db.func.count(Trade.id).label('trade_count')
+    ).outerjoin(Trade).group_by(User.id).order_by(User.id).all()
+    
+    # Get recent registrations (last 10 users)
+    recent_users = User.query.order_by(User.id.desc()).limit(10).all()
+    
+    return render_template(
+        'admin_dashboard.html',
+        title='Admin Dashboard',
+        total_users=total_users,
+        active_users=active_users,
+        inactive_users=inactive_users,
+        users=users,
+        recent_users=recent_users
+    ) 

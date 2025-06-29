@@ -15,4 +15,25 @@ def register_commands(app):
         
         user.set_password(password)
         db.session.commit()
-        click.echo(f"Password for user '{username}' has been successfully reset.") 
+        click.echo(f"Password for user '{username}' has been successfully reset.")
+
+    @app.cli.command('list-users')
+    def list_users_command():
+        """Lists all registered users."""
+        users = User.query.all()
+        if not users:
+            click.echo("No users found in the database.")
+            return
+        
+        click.echo(f"Found {len(users)} registered user(s):")
+        click.echo("-" * 50)
+        for user in users:
+            trade_count = user.trades.count()
+            click.echo(f"ID: {user.id} | Username: {user.username} | Trades: {trade_count}")
+        click.echo("-" * 50)
+
+    @app.cli.command('count-users')
+    def count_users_command():
+        """Counts the total number of registered users."""
+        count = User.query.count()
+        click.echo(f"Total registered users: {count}") 
