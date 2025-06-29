@@ -557,19 +557,24 @@ def share_trade(trade_id):
 
     draw = ImageDraw.Draw(card)
 
+    # Helper for text size (Pillow >=8.0)
+    def get_text_size(font, text):
+        bbox = font.getbbox(text)
+        return bbox[2] - bbox[0], bbox[3] - bbox[1]
+
     # Centered layout variables
     center_x = width // 2
     y = 80
 
     # TRADELOG branding (centered top)
     title_text = "TRADELOG"
-    title_w, title_h = font_title.getsize(title_text)
+    title_w, title_h = get_text_size(font_title, title_text)
     draw.text((center_x - title_w//2, y), title_text, font=font_title, fill='#f7b32b')
     y += title_h + 10
 
     # Ticker and badge (centered)
     ticker_text = trade.ticker
-    ticker_w, ticker_h = font_value.getsize(ticker_text)
+    ticker_w, ticker_h = get_text_size(font_value, ticker_text)
     draw.text((center_x - ticker_w//2, y), ticker_text, font=font_value, fill='#fff')
     badge_text = trade.direction.capitalize()
     badge_color = (0, 212, 170, 255) if badge_text == 'Long' else (255, 107, 107, 255)
@@ -580,7 +585,7 @@ def share_trade(trade_id):
     badge_draw = ImageDraw.Draw(badge)
     badge_draw.rounded_rectangle([(0,0),(badge_w,badge_h)], radius=22, fill=badge_color)
     card.paste(badge, (int(badge_x), int(badge_y)), badge)
-    badge_text_w, badge_text_h = font_label.getsize(badge_text)
+    badge_text_w, badge_text_h = get_text_size(font_label, badge_text)
     draw.text((badge_x + (badge_w-badge_text_w)//2, badge_y + (badge_h-badge_text_h)//2), badge_text, font=font_label, fill='#fff')
     y += ticker_h + 30
 
@@ -588,8 +593,8 @@ def share_trade(trade_id):
     pnl_color = '#00d4aa' if trade.pnl and trade.pnl > 0 else '#ff6b6b' if trade.pnl and trade.pnl < 0 else '#fff'
     pnl_text = f"{trade.pnl if trade.pnl is not None else '-'}"
     pnl_label = "PnL"
-    pnl_label_w, pnl_label_h = font_label.getsize(pnl_label)
-    pnl_text_w, pnl_text_h = font_pnl.getsize(pnl_text)
+    pnl_label_w, pnl_label_h = get_text_size(font_label, pnl_label)
+    pnl_text_w, pnl_text_h = get_text_size(font_pnl, pnl_text)
     draw.text((center_x - pnl_label_w//2, y), pnl_label, font=font_label, fill='#b0b0b0')
     y += pnl_label_h + 5
     draw.text((center_x - pnl_text_w//2, y), pnl_text, font=font_pnl, fill=pnl_color)
@@ -609,8 +614,8 @@ def share_trade(trade_id):
     bottom_y = height - 80
     strat_text = f"Strategy: {trade.strategy.name if trade.strategy else '-'}"
     date_text = f"Date: {trade.entry_date.strftime('%Y-%m-%d')}"
-    strat_w, _ = font_small.getsize(strat_text)
-    date_w, _ = font_small.getsize(date_text)
+    strat_w, _ = get_text_size(font_small, strat_text)
+    date_w, _ = get_text_size(font_small, date_text)
     draw.text((center_x - strat_w//2, bottom_y), strat_text, font=font_small, fill='#b0b0b0')
     draw.text((center_x - date_w//2, bottom_y+32), date_text, font=font_small, fill='#b0b0b0')
 
