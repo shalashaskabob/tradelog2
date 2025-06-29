@@ -11,6 +11,111 @@
         </div>
     </div>
 
+    <!-- Filter Section -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Filters & Search</h5>
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+                    <i class="bi bi-funnel"></i> Toggle Filters
+                </button>
+            </div>
+        </div>
+        <div class="collapse" id="filterCollapse">
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('main.index') }}" id="filterForm">
+                    <!-- Search Bar -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="search" class="form-label">Search (Ticker or Notes)</label>
+                            <input type="text" class="form-control" id="search" name="search" value="{{ search_query }}" placeholder="Search trades...">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="symbol" class="form-label">Symbol</label>
+                            <select class="form-select" id="symbol" name="symbol">
+                                <option value="">All Symbols</option>
+                                {% for symbol in user_symbols %}
+                                    <option value="{{ symbol }}" {% if symbol_filter == symbol %}selected{% endif %}>{{ symbol }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="strategy" class="form-label">Strategy</label>
+                            <select class="form-select" id="strategy" name="strategy">
+                                <option value="">All Strategies</option>
+                                {% for strategy in strategies %}
+                                    <option value="{{ strategy.name }}" {% if strategy_filter == strategy.name %}selected{% endif %}>{{ strategy.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Filters -->
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label for="direction" class="form-label">Direction</label>
+                            <select class="form-select" id="direction" name="direction">
+                                <option value="">All Directions</option>
+                                <option value="Long" {% if direction_filter == 'Long' %}selected{% endif %}>Long</option>
+                                <option value="Short" {% if direction_filter == 'Short' %}selected{% endif %}>Short</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="pnl" class="form-label">PnL Status</label>
+                            <select class="form-select" id="pnl" name="pnl">
+                                <option value="">All Trades</option>
+                                <option value="profit" {% if pnl_filter == 'profit' %}selected{% endif %}>Profitable</option>
+                                <option value="loss" {% if pnl_filter == 'loss' %}selected{% endif %}>Losing</option>
+                                <option value="breakeven" {% if pnl_filter == 'breakeven' %}selected{% endif %}>Breakeven</option>
+                                <option value="open" {% if pnl_filter == 'open' %}selected{% endif %}>Open</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="start_date" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="end_date" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
+                        </div>
+                    </div>
+
+                    <!-- Filter Actions -->
+                    <div class="row">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search"></i> Apply Filters
+                            </button>
+                            <a href="{{ url_for('main.index') }}" class="btn btn-secondary ms-2">
+                                <i class="bi bi-x-circle"></i> Clear All
+                            </a>
+                            <span class="text-muted ms-3">
+                                Showing {{ trades|length }} trade{{ 's' if trades|length != 1 else '' }}
+                                {% if search_query or symbol_filter or strategy_filter or direction_filter or pnl_filter or start_date or end_date %}
+                                    (filtered)
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Summary -->
+    {% if search_query or symbol_filter or strategy_filter or direction_filter or pnl_filter or start_date or end_date %}
+        <div class="alert alert-info mt-3">
+            <strong>Active Filters:</strong>
+            {% if search_query %}<span class="badge bg-primary me-1">Search: "{{ search_query }}"</span>{% endif %}
+            {% if symbol_filter %}<span class="badge bg-secondary me-1">Symbol: {{ symbol_filter }}</span>{% endif %}
+            {% if strategy_filter %}<span class="badge bg-info me-1">Strategy: {{ strategy_filter }}</span>{% endif %}
+            {% if direction_filter %}<span class="badge bg-warning me-1">Direction: {{ direction_filter }}</span>{% endif %}
+            {% if pnl_filter %}<span class="badge bg-success me-1">PnL: {{ pnl_filter|title }}</span>{% endif %}
+            {% if start_date %}<span class="badge bg-dark me-1">From: {{ start_date }}</span>{% endif %}
+            {% if end_date %}<span class="badge bg-dark me-1">To: {{ end_date }}</span>{% endif %}
+        </div>
+    {% endif %}
+
     <div class="card mt-4">
         <div class="card-body">
             <div class="table-responsive">
@@ -78,7 +183,14 @@
                             </tr>
                         {% else %}
                             <tr>
-                                <td colspan="12" class="text-center">No trades found.</td>
+                                <td colspan="12" class="text-center">
+                                    {% if search_query or symbol_filter or strategy_filter or direction_filter or pnl_filter or start_date or end_date %}
+                                        No trades found matching your filters. 
+                                        <a href="{{ url_for('main.index') }}" class="text-info">Clear filters</a>
+                                    {% else %}
+                                        No trades found. <a href="{{ url_for('main.add_trade') }}" class="text-info">Add your first trade</a>
+                                    {% endif %}
+                                </td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -86,4 +198,30 @@
             </div>
         </div>
     </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Auto-submit form when filters change (optional)
+    document.addEventListener('DOMContentLoaded', function() {
+        const filterInputs = document.querySelectorAll('#filterForm select, #filterForm input[type="date"]');
+        
+        filterInputs.forEach(input => {
+            input.addEventListener('change', function() {
+                // Only auto-submit for select dropdowns, not date inputs
+                if (this.tagName === 'SELECT') {
+                    document.getElementById('filterForm').submit();
+                }
+            });
+        });
+        
+        // Add keyboard shortcut for search
+        document.getElementById('search').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('filterForm').submit();
+            }
+        });
+    });
+</script>
 {% endblock %} 

@@ -21,8 +21,84 @@ THUMB_SIZE = (150, 150)
 @bp.route('/index')
 @login_required
 def index():
-    trades = Trade.query.filter_by(trader=current_user).order_by(Trade.entry_date.desc()).all()
-    return render_template('index.html', title='Home', trades=trades)
+    # Get filter parameters from request
+    search_query = request.args.get('search', '').strip()
+    symbol_filter = request.args.get('symbol', '').strip()
+    strategy_filter = request.args.get('strategy', '').strip()
+    direction_filter = request.args.get('direction', '').strip()
+    pnl_filter = request.args.get('pnl', '').strip()
+    start_date = request.args.get('start_date', '').strip()
+    end_date = request.args.get('end_date', '').strip()
+    
+    # Start with base query for current user's trades
+    query = Trade.query.filter_by(user_id=current_user.id)
+    
+    # Apply filters
+    if search_query:
+        # Search in ticker and notes
+        query = query.filter(
+            db.or_(
+                Trade.ticker.ilike(f'%{search_query}%'),
+                Trade.notes.ilike(f'%{search_query}%')
+            )
+        )
+    
+    if symbol_filter:
+        query = query.filter(Trade.ticker == symbol_filter)
+    
+    if strategy_filter:
+        query = query.join(Strategy).filter(Strategy.name == strategy_filter)
+    
+    if direction_filter:
+        query = query.filter(Trade.direction == direction_filter)
+    
+    if pnl_filter:
+        if pnl_filter == 'profit':
+            query = query.filter(Trade.pnl > 0)
+        elif pnl_filter == 'loss':
+            query = query.filter(Trade.pnl < 0)
+        elif pnl_filter == 'breakeven':
+            query = query.filter(Trade.pnl == 0)
+        elif pnl_filter == 'open':
+            query = query.filter(Trade.pnl.is_(None))
+    
+    if start_date:
+        try:
+            start_datetime = datetime.strptime(start_date, '%Y-%m-%d')
+            query = query.filter(Trade.entry_date >= start_datetime)
+        except ValueError:
+            pass
+    
+    if end_date:
+        try:
+            end_datetime = datetime.strptime(end_date, '%Y-%m-%d')
+            # Add 23:59:59 to include the entire end date
+            end_datetime = end_datetime.replace(hour=23, minute=59, second=59)
+            query = query.filter(Trade.entry_date <= end_datetime)
+        except ValueError:
+            pass
+    
+    # Get filtered trades
+    trades = query.order_by(Trade.entry_date.desc()).all()
+    
+    # Get filter options for the form
+    user_strategies = Strategy.query.filter_by(user_id=current_user.id).order_by(Strategy.name).all()
+    user_symbols = db.session.query(Trade.ticker).filter_by(user_id=current_user.id).distinct().order_by(Trade.ticker).all()
+    user_symbols = [symbol[0] for symbol in user_symbols]
+    
+    return render_template('index.html', 
+                         title='Home', 
+                         trades=trades,
+                         search_query=search_query,
+                         symbol_filter=symbol_filter,
+                         strategy_filter=strategy_filter,
+                         direction_filter=direction_filter,
+                         pnl_filter=pnl_filter,
+                         start_date=start_date,
+                         end_date=end_date,
+                         symbols=FUTURES_SYMBOLS,
+                         user_symbols=user_symbols,
+                         strategies=user_strategies)
 
 @bp.route('/uploads/<path:filepath>')
 def uploaded_file(filepath):
