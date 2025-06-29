@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1>Add a New Trade</h1>
-    <form method="POST" action="{{ url_for('main.add_trade') }}" enctype="multipart/form-data">
+    <h1>{{ 'Edit Trade' if edit_mode else 'Add a New Trade' }}</h1>
+    <form method="POST" action="{{ url_for('main.edit_trade', trade_id=trade.id) if edit_mode else url_for('main.add_trade') }}" enctype="multipart/form-data">
         <fieldset>
             <div class="form-group">
                 <label for="ticker" class="form-label mt-4">Symbol</label>
                 <select class="form-select" id="ticker" name="ticker" required>
                     {% for sym in symbols %}
-                        <option value="{{ sym }}">{{ sym }}</option>
+                        <option value="{{ sym }}" {% if edit_mode and trade and trade.ticker == sym %}selected{% endif %}>{{ sym }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -44,7 +44,7 @@
                 <div id="strategy-picker" class="d-flex flex-wrap gap-2">
                     {% for strat in strategies %}
                         <div class="form-check">
-                            <input type="radio" class="form-check-input" name="strategy_choice" id="strat-{{ strat.id }}" value="{{ strat.name }}" required>
+                            <input type="radio" class="form-check-input" name="strategy_choice" id="strat-{{ strat.id }}" value="{{ strat.name }}" required {% if edit_mode and trade and trade.strategy and trade.strategy.name == strat.name %}checked{% endif %}>
                             <label class="form-check-label btn btn-outline-info" for="strat-{{ strat.id }}">{{ strat.name }}</label>
                         </div>
                     {% endfor %}
@@ -79,16 +79,23 @@
 
 {% block scripts %}
 <script>
+    // Set edit mode flag for JavaScript
+    var isEditMode = {{ 'true' if edit_mode else 'false' }};
+</script>
+<script>
     document.addEventListener('DOMContentLoaded', function() {
         const entryDateInput = document.getElementById('entry_date');
         const exitDateInput = document.getElementById('exit_date');
 
-        // --- Default Entry and Exit Date to Now ---
-        const now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); // Adjust for local timezone
-        const formattedNow = now.toISOString().slice(0, 16);
-        entryDateInput.value = formattedNow;
-        exitDateInput.value = formattedNow; // Default exit date as well
+        // Only set default dates if not in edit mode
+        if (!isEditMode) {
+            // --- Default Entry and Exit Date to Now ---
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); // Adjust for local timezone
+            const formattedNow = now.toISOString().slice(0, 16);
+            entryDateInput.value = formattedNow;
+            exitDateInput.value = formattedNow; // Default exit date as well
+        }
 
         // --- Keep Exit Date in Sync with Entry Date ---
         entryDateInput.addEventListener('input', () => {

@@ -2,9 +2,11 @@ body {
     background-color: #222;
 }
 
-/* Hide the actual radio buttons */
+/* Make radio buttons invisible but still focusable */
 #strategy-picker .form-check-input {
-    display: none;
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
 }
 
 /* Style the labels to look like buttons and change on selection */
