@@ -29,8 +29,8 @@
                             {% set d = calendar_cells[(year, month, day)] %}
                             {% set day_pnl = daily_pnl.get(d, 0) %}
                             {% set trades = daily_trades.get(d, []) %}
-                            <td class="p-1" style="vertical-align: top;">
-                                <div class="fw-bold {% if day_pnl > 0 %}text-success{% elif day_pnl < 0 %}text-danger{% else %}text-secondary{% endif %}">
+                            <td class="p-1" style="vertical-align: top; background-color: {% if day_pnl > 0 %}#183c1a{% elif day_pnl < 0 %}#3c1a1a{% else %}#222{% endif %}; color: #fff;">
+                                <div class="fw-bold">
                                     {{ day_pnl|round(2) }}
                                 </div>
                                 <div class="small text-muted">{{ day }}</div>
