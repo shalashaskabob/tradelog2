@@ -62,4 +62,24 @@ def register_commands(app):
         
         user.is_admin = False
         db.session.commit()
-        click.echo(f"Admin privileges removed from user '{username}'.") 
+        click.echo(f"Admin privileges removed from user '{username}'.")
+
+    @app.cli.command('delete-user')
+    @click.argument('username')
+    def delete_user_command(username):
+        """Deletes a user and all their trades and strategies."""
+        user = User.query.filter_by(username=username).first()
+        if user is None:
+            click.echo(f"Error: User '{username}' not found.")
+            return
+        # Delete user's trades
+        num_trades = user.trades.count()
+        for trade in user.trades:
+            db.session.delete(trade)
+        # Delete user's strategies
+        num_strategies = user.strategies.count()
+        for strategy in user.strategies:
+            db.session.delete(strategy)
+        db.session.delete(user)
+        db.session.commit()
+        click.echo(f"User '{username}' deleted. {num_trades} trades and {num_strategies} strategies removed.") 
