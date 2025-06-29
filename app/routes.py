@@ -541,20 +541,14 @@ def share_trade(trade_id):
     card = Image.new('RGBA', (width, height), color=(0, 0, 0, 0))
     draw = ImageDraw.Draw(card)
 
-    # Modern dark gradient background
+    # Bybit-style dark gradient background
     bg = Image.new('RGBA', (width, height), color=(0, 0, 0, 0))
     bg_draw = ImageDraw.Draw(bg)
     for y in range(height):
-        r = int(30 + 20 * y / height)
-        g = int(32 + 18 * y / height)
-        b = int(40 + 30 * y / height)
+        r = int(24 + 16 * y / height)
+        g = int(26 + 12 * y / height)
+        b = int(32 + 24 * y / height)
         bg_draw.line([(0, y), (width, y)], fill=(r, g, b, 255))
-    # Add a subtle vignette
-    vignette = Image.new('L', (width, height), 0)
-    vignette_draw = ImageDraw.Draw(vignette)
-    vignette_draw.ellipse([(-80, -80), (width+80, height+80)], fill=255)
-    vignette = vignette.filter(ImageFilter.GaussianBlur(60))
-    bg.putalpha(vignette)
     card = Image.alpha_composite(card, bg)
 
     # Rounded corners mask
@@ -564,62 +558,57 @@ def share_trade(trade_id):
     mask_draw.rounded_rectangle([(0, 0), (width, height)], radius=radius, fill=255)
     card.putalpha(mask)
 
-    # Drop shadow (simulate by compositing on a slightly larger transparent image)
-    shadow = Image.new('RGBA', (width+24, height+24), (0,0,0,0))
-    shadow_draw = ImageDraw.Draw(shadow)
-    shadow_draw.rounded_rectangle([(12, 12), (width+12, height+12)], radius=radius+8, fill=(0,0,0,90))
-    shadow = shadow.filter(ImageFilter.GaussianBlur(8))
-    shadow.paste(card, (12,12), card)
-    card = shadow.crop((0,0,width,height))
-
     # Load Roboto font (bold weight for all text)
     font_path = os.path.join('app', 'static', 'fonts', 'Roboto-VariableFont_wdth,wght.ttf')
     try:
         font_title = ImageFont.truetype(font_path, 36, layout_engine=ImageFont.LAYOUT_BASIC)
-        font_label = ImageFont.truetype(font_path, 24, layout_engine=ImageFont.LAYOUT_BASIC)
-        font_value = ImageFont.truetype(font_path, 40, layout_engine=ImageFont.LAYOUT_BASIC)
-        font_pnl = ImageFont.truetype(font_path, 56, layout_engine=ImageFont.LAYOUT_BASIC)
-        font_small = ImageFont.truetype(font_path, 20, layout_engine=ImageFont.LAYOUT_BASIC)
+        font_label = ImageFont.truetype(font_path, 22, layout_engine=ImageFont.LAYOUT_BASIC)
+        font_value = ImageFont.truetype(font_path, 32, layout_engine=ImageFont.LAYOUT_BASIC)
+        font_pnl = ImageFont.truetype(font_path, 64, layout_engine=ImageFont.LAYOUT_BASIC)
+        font_small = ImageFont.truetype(font_path, 18, layout_engine=ImageFont.LAYOUT_BASIC)
     except Exception as e:
         font_title = font_label = font_value = font_pnl = font_small = ImageFont.load_default()
 
     draw = ImageDraw.Draw(card)
 
-    # Accent line (top left)
-    draw.line([(40, 38), (180, 38)], fill='#4a90e2', width=4)
+    # TRADELOG branding (top left)
+    draw.text((36, 28), "TRADELOG", font=font_title, fill='#f7b32b')
 
-    # Title
-    draw.text((40, 48), "TRADELOG", font=font_title, fill='#fff')
-    draw.text((40, 92), "Trade Card", font=font_label, fill='#b0b0b0')
+    # Ticker and badge (below branding)
+    ticker_y = 80
+    draw.text((36, ticker_y), trade.ticker, font=font_value, fill='#fff')
+    # Long/Short badge
+    badge_text = trade.direction.capitalize()
+    badge_color = (0, 212, 170, 255) if badge_text == 'Long' else (255, 107, 107, 255)
+    badge_w, badge_h = 80, 32
+    badge_x = 36 + draw.textlength(trade.ticker, font=font_value) + 18
+    badge_y = ticker_y + 4
+    badge = Image.new('RGBA', (badge_w, badge_h), (0,0,0,0))
+    badge_draw = ImageDraw.Draw(badge)
+    badge_draw.rounded_rectangle([(0,0),(badge_w,badge_h)], radius=16, fill=badge_color)
+    card.paste(badge, (int(badge_x), int(badge_y)), badge)
+    draw.text((badge_x+16, badge_y+4), badge_text, font=font_label, fill='#fff')
 
-    # Main trade info (left, tighter spacing)
-    y0 = 140
-    spacing = 36
-    draw.text((40, y0), "Symbol:", font=font_label, fill='#b0b0b0')
-    draw.text((160, y0), trade.ticker, font=font_value, fill='#fff')
-    draw.text((40, y0+spacing), "Direction:", font=font_label, fill='#b0b0b0')
-    draw.text((160, y0+spacing), trade.direction, font=font_value, fill='#fff')
-    draw.text((40, y0+spacing*2), "Entry:", font=font_label, fill='#b0b0b0')
-    draw.text((160, y0+spacing*2), f"{trade.entry_price}", font=font_value, fill='#fff')
-    draw.text((40, y0+spacing*3), "Exit:", font=font_label, fill='#b0b0b0')
-    draw.text((160, y0+spacing*3), f"{trade.exit_price if trade.exit_price is not None else '-'}", font=font_value, fill='#fff')
-
-    # Center the PnL pill
+    # Large PnL (centered, colored)
     pnl_color = '#00d4aa' if trade.pnl and trade.pnl > 0 else '#ff6b6b' if trade.pnl and trade.pnl < 0 else '#fff'
-    pill_w, pill_h = 220, 90
-    pill_x = (width - pill_w) // 2 + 60
-    pill_y = y0 + spacing*1
-    pill_bg = (0, 212, 170, 38) if trade.pnl and trade.pnl > 0 else (255, 107, 107, 38) if trade.pnl and trade.pnl < 0 else (255,255,255,30)
-    pill = Image.new('RGBA', (pill_w, pill_h), (0,0,0,0))
-    pill_draw = ImageDraw.Draw(pill)
-    pill_draw.rounded_rectangle([(0,0),(pill_w,pill_h)], radius=32, fill=pill_bg)
-    card.paste(pill, (pill_x, pill_y), pill)
-    draw.text((pill_x+20, pill_y+10), "PnL", font=font_label, fill='#b0b0b0')
-    draw.text((pill_x+20, pill_y+38), f"{trade.pnl if trade.pnl is not None else '-'}", font=font_pnl, fill=pnl_color)
+    pnl_text = f"{trade.pnl if trade.pnl is not None else '-'}"
+    pnl_x = 36
+    pnl_y = 140
+    draw.text((pnl_x, pnl_y), "PnL", font=font_label, fill='#b0b0b0')
+    draw.text((pnl_x, pnl_y+32), pnl_text, font=font_pnl, fill=pnl_color)
+
+    # Entry/Exit price (two columns below PnL)
+    price_y = pnl_y + 120
+    col1_x = 36
+    col2_x = 220
+    draw.text((col1_x, price_y), "Entry Price", font=font_label, fill='#b0b0b0')
+    draw.text((col2_x, price_y), "Exit Price", font=font_label, fill='#b0b0b0')
+    draw.text((col1_x, price_y+32), f"{trade.entry_price}", font=font_value, fill='#fff')
+    draw.text((col2_x, price_y+32), f"{trade.exit_price if trade.exit_price is not None else '-'}", font=font_value, fill='#fff')
 
     # Strategy and date (bottom left)
-    draw.text((40, height-60), f"Strategy: {trade.strategy.name if trade.strategy else '-'}", font=font_small, fill='#b0b0b0')
-    draw.text((40, height-32), f"Date: {trade.entry_date.strftime('%Y-%m-%d')}", font=font_small, fill='#b0b0b0')
+    draw.text((36, height-60), f"Strategy: {trade.strategy.name if trade.strategy else '-'}", font=font_small, fill='#b0b0b0')
+    draw.text((36, height-32), f"Date: {trade.entry_date.strftime('%Y-%m-%d')}", font=font_small, fill='#b0b0b0')
 
     # Screenshot thumbnail (bottom right, above logo)
     if trade.screenshot:
