@@ -30,7 +30,7 @@
                             {% set day_pnl = daily_pnl.get(d) %}
                             {% set trades = daily_trades.get(d, []) %}
                             {% if day_pnl is not none %}
-                                <td class="p-1" style="vertical-align: top; background-color: {% if day_pnl > 0 %}#183c1a{% elif day_pnl < 0 %}#3c1a1a{% else %}#222{% endif %}; color: #fff;">
+                                <td class="p-1" style="vertical-align: top; background-color: {% if day_pnl > 0 %}#183c1a{% elif day_pnl < 0 %}#3c1a1a{% else %}#222{% endif %}; color: #fff; min-width: 120px; min-height: 80px;">
                                     <div class="fw-bold">{{ day_pnl|round(2) }}</div>
                                     <div class="small text-muted">{{ day }}</div>
                                     {% if trades|length > 0 %}
@@ -38,10 +38,10 @@
                                     {% endif %}
                                 </td>
                             {% else %}
-                                <td></td>
+                                <td class="bg-dark" style="min-width: 120px; min-height: 80px;"></td>
                             {% endif %}
                         {% else %}
-                            <td></td>
+                            <td class="bg-transparent" style="min-width: 120px; min-height: 80px;"></td>
                         {% endif %}
                     {% endfor %}
                 </tr>
