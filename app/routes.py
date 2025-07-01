@@ -568,30 +568,52 @@ def share_trade(trade_id):
 
     # Centered layout variables
     center_x = width // 2
-    y = 80
+    top_margin = 220  # Estimated lion logo height + padding
+    y = top_margin
 
-    # TRADELOG branding (centered top)
+    # TRADELOG branding (centered top, below lion logo)
     title_text = "TRADELOG"
     title_w, title_h = get_text_size(font_title, title_text)
     draw.text((center_x - title_w//2, y), title_text, font=font_title, fill='#f7b32b')
-    y += title_h + 10
+    y += title_h + 10  # 10px spacing
 
-    # Ticker and badge (centered)
+    # Ticker and badge (centered, badge to right or below if needed)
     ticker_text = trade.ticker
     ticker_w, ticker_h = get_text_size(font_value, ticker_text)
-    draw.text((center_x - ticker_w//2, y), ticker_text, font=font_value, fill='#fff')
     badge_text = trade.direction.capitalize()
     badge_color = (0, 212, 170, 255) if badge_text == 'Long' else (255, 107, 107, 255)
     badge_w, badge_h = 120, 44
-    badge_x = center_x + ticker_w//2 + 20
+    badge_gap = 20
+    # Calculate badge position: to right of ticker, but if too close to card edge, move below ticker
+    badge_x_right = center_x + ticker_w//2 + badge_gap
+    badge_x_left = badge_x_right
     badge_y = y + ticker_h//2 - badge_h//2
-    badge = Image.new('RGBA', (badge_w, badge_h), (0,0,0,0))
-    badge_draw = ImageDraw.Draw(badge)
-    badge_draw.rounded_rectangle([(0,0),(badge_w,badge_h)], radius=22, fill=badge_color)
-    card.paste(badge, (int(badge_x), int(badge_y)), badge)
-    badge_text_w, badge_text_h = get_text_size(font_label, badge_text)
-    draw.text((badge_x + (badge_w-badge_text_w)//2, badge_y + (badge_h-badge_text_h)//2), badge_text, font=font_label, fill='#fff')
-    y += ticker_h + 30
+    badge_fits = badge_x_right + badge_w < width - 20  # 20px right margin
+    if badge_fits:
+        # Draw ticker
+        draw.text((center_x - ticker_w//2, y), ticker_text, font=font_value, fill='#fff')
+        # Draw badge to right of ticker
+        badge = Image.new('RGBA', (badge_w, badge_h), (0,0,0,0))
+        badge_draw = ImageDraw.Draw(badge)
+        badge_draw.rounded_rectangle([(0,0),(badge_w,badge_h)], radius=22, fill=badge_color)
+        card.paste(badge, (int(badge_x_left), int(badge_y)), badge)
+        badge_text_w, badge_text_h = get_text_size(font_label, badge_text)
+        draw.text((badge_x_left + (badge_w-badge_text_w)//2, badge_y + (badge_h-badge_text_h)//2), badge_text, font=font_label, fill='#fff')
+        y += max(ticker_h, badge_h) + 30  # 30px spacing
+    else:
+        # Draw ticker centered
+        draw.text((center_x - ticker_w//2, y), ticker_text, font=font_value, fill='#fff')
+        y += ticker_h + 10
+        # Draw badge centered below ticker
+        badge_x_center = center_x - badge_w//2
+        badge_y = y
+        badge = Image.new('RGBA', (badge_w, badge_h), (0,0,0,0))
+        badge_draw = ImageDraw.Draw(badge)
+        badge_draw.rounded_rectangle([(0,0),(badge_w,badge_h)], radius=22, fill=badge_color)
+        card.paste(badge, (int(badge_x_center), int(badge_y)), badge)
+        badge_text_w, badge_text_h = get_text_size(font_label, badge_text)
+        draw.text((badge_x_center + (badge_w-badge_text_w)//2, badge_y + (badge_h-badge_text_h)//2), badge_text, font=font_label, fill='#fff')
+        y += badge_h + 30  # 30px spacing
 
     # Large PnL (centered, colored)
     pnl_color = '#00d4aa' if trade.pnl and trade.pnl > 0 else '#ff6b6b' if trade.pnl and trade.pnl < 0 else '#fff'
@@ -600,28 +622,40 @@ def share_trade(trade_id):
     pnl_label_w, pnl_label_h = get_text_size(font_label, pnl_label)
     pnl_text_w, pnl_text_h = get_text_size(font_pnl, pnl_text)
     draw.text((center_x - pnl_label_w//2, y), pnl_label, font=font_label, fill='#b0b0b0')
-    y += pnl_label_h + 5
+    y += pnl_label_h + 8  # slightly more spacing
     draw.text((center_x - pnl_text_w//2, y), pnl_text, font=font_pnl, fill=pnl_color)
-    y += pnl_text_h + 30
+    y += pnl_text_h + 36  # more spacing before prices
 
     # Entry/Exit price (two columns, centered below PnL)
     price_y = y
     col_gap = 120
     col1_x = center_x - col_gap
     col2_x = center_x + col_gap
-    draw.text((col1_x, price_y), "Entry Price", font=font_label, fill='#b0b0b0')
-    draw.text((col2_x, price_y), "Exit Price", font=font_label, fill='#b0b0b0')
-    draw.text((col1_x, price_y+40), f"{trade.entry_price}", font=font_value, fill='#fff')
-    draw.text((col2_x, price_y+40), f"{trade.exit_price if trade.exit_price is not None else '-'}", font=font_value, fill='#fff')
+    entry_label = "Entry Price"
+    exit_label = "Exit Price"
+    entry_label_w, entry_label_h = get_text_size(font_label, entry_label)
+    exit_label_w, exit_label_h = get_text_size(font_label, exit_label)
+    entry_val = f"{trade.entry_price}"
+    exit_val = f"{trade.exit_price if trade.exit_price is not None else '-'}"
+    entry_val_w, entry_val_h = get_text_size(font_value, entry_val)
+    exit_val_w, exit_val_h = get_text_size(font_value, exit_val)
+    # Draw labels
+    draw.text((col1_x - entry_label_w//2, price_y), entry_label, font=font_label, fill='#b0b0b0')
+    draw.text((col2_x - exit_label_w//2, price_y), exit_label, font=font_label, fill='#b0b0b0')
+    # Draw values
+    draw.text((col1_x - entry_val_w//2, price_y + entry_label_h + 8), entry_val, font=font_value, fill='#fff')
+    draw.text((col2_x - exit_val_w//2, price_y + exit_label_h + 8), exit_val, font=font_value, fill='#fff')
+    # Increment y by the height of label + value + spacing
+    y = price_y + entry_label_h + max(entry_val_h, exit_val_h) + 32
 
     # Strategy and date (bottom center)
     bottom_y = height - 80
     strat_text = f"Strategy: {trade.strategy.name if trade.strategy else '-'}"
     date_text = f"Date: {trade.entry_date.strftime('%Y-%m-%d')}"
-    strat_w, _ = get_text_size(font_small, strat_text)
-    date_w, _ = get_text_size(font_small, date_text)
+    strat_w, strat_h = get_text_size(font_small, strat_text)
+    date_w, date_h = get_text_size(font_small, date_text)
     draw.text((center_x - strat_w//2, bottom_y), strat_text, font=font_small, fill='#b0b0b0')
-    draw.text((center_x - date_w//2, bottom_y+32), date_text, font=font_small, fill='#b0b0b0')
+    draw.text((center_x - date_w//2, bottom_y+strat_h+4), date_text, font=font_small, fill='#b0b0b0')
 
     # Screenshot thumbnail (bottom right, above logo)
     if trade.screenshot:
