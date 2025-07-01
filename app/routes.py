@@ -384,9 +384,12 @@ def admin_dashboard():
     # Get recent registrations (last 10 users)
     recent_users = User.query.order_by(User.id.desc()).limit(10).all()
     
-    # Online users: last_seen within 10 minutes
+    # Online users: last_seen within 10 minutes (exclude NULL values)
     ten_minutes_ago = datetime.utcnow() - timedelta(minutes=10)
-    online_users = User.query.filter(User.last_seen >= ten_minutes_ago).count()
+    online_users = User.query.filter(
+        User.last_seen.isnot(None),
+        User.last_seen >= ten_minutes_ago
+    ).count()
     
     return render_template(
         'admin_dashboard.html',

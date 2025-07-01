@@ -16,7 +16,6 @@ depends_on = None
 
 def upgrade():
     op.add_column('user', sa.Column('last_seen', sa.DateTime(), nullable=True))
-    op.execute('UPDATE "user" SET last_seen = CURRENT_TIMESTAMP WHERE last_seen IS NULL')
 
 def downgrade():
     op.drop_column('user', 'last_seen') 
