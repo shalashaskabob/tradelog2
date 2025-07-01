@@ -12,6 +12,7 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(64), index=True, unique=True)
     password_hash = db.Column(db.String(256))
     is_admin = db.Column(db.Boolean, default=False)
+    show_on_top_trades = db.Column(db.Boolean, default=False)
     trades = db.relationship('Trade', backref='trader', lazy='dynamic')
 
     def set_password(self, password):
