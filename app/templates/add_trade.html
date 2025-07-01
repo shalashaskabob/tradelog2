@@ -72,6 +72,16 @@
                 {% endif %}
                 <input type="file" class="form-control" id="screenshot" name="screenshot" accept="image/*">
             </div>
+            <div class="form-group">
+                <label for="tags" class="form-label mt-4">Tags</label>
+                <select class="form-select" id="tags" name="tags" multiple>
+                    {% for tag in user_tags %}
+                        <option value="{{ tag.name }}" {% if edit_mode and trade and tag in trade.tags %}selected{% endif %}>{{ tag.name }}</option>
+                    {% endfor %}
+                </select>
+                <small class="form-text text-muted">Select or type new tags (comma-separated for new tags).</small>
+                <input type="text" class="form-control mt-2" id="new_tags" name="new_tags" placeholder="Add new tags, separated by commas">
+            </div>
             <button type="submit" class="btn btn-primary mt-4">{{ 'Update Trade' if edit_mode else 'Add Trade' }}</button>
         </fieldset>
     </form>
