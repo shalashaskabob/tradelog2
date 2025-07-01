@@ -595,7 +595,7 @@ def share_trade(trade_id):
     y = top_margin
 
     # TRADELOG branding (centered top, below lion logo)
-    title_text = "TRADELOG"
+    title_text = "KINGLINE"
     title_w, title_h = get_text_size(font_title, title_text)
     draw.text((center_x - title_w//2, y), title_text, font=font_title, fill='#f7b32b')
     y += title_h + 10  # 10px spacing
@@ -783,7 +783,7 @@ def share_trade_png(trade_id):
             center_x = width // 2
             top_margin = 240
             y = top_margin
-            title_text = "TRADELOG"
+            title_text = "KINGLINE"
             title_w, title_h = get_text_size(font_title, title_text)
             draw.text((center_x - title_w//2, y), title_text, font=font_title, fill='#f7b32b')
             y += title_h + 10
