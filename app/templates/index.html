@@ -182,9 +182,27 @@
                                         <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                                     </form>
                                     <a href="{{ url_for('main.edit_trade', trade_id=trade.id) }}" class="btn btn-sm btn-secondary ms-1">Edit</a>
-                                    <a href="{{ url_for('main.share_trade', trade_id=trade.id) }}" class="btn btn-sm btn-info ms-1" target="_blank">Share</a>
+                                    <a href="#" class="btn btn-sm btn-info ms-1" data-bs-toggle="modal" data-bs-target="#shareModal{{ trade.id }}">Share</a>
                                 </td>
                             </tr>
+                            <!-- Share Modal -->
+                            <div class="modal fade" id="shareModal{{ trade.id }}" tabindex="-1" aria-labelledby="shareModalLabel{{ trade.id }}" aria-hidden="true">
+                              <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content bg-dark text-white" style="border-radius: 16px;">
+                                  <div class="modal-header border-0">
+                                    <h5 class="modal-title" id="shareModalLabel{{ trade.id }}">Share Trade Card</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                  </div>
+                                  <div class="modal-body text-center">
+                                    <img id="cardImage{{ trade.id }}" src="{{ url_for('main.share_trade', trade_id=trade.id) }}" alt="Trade Card" style="width: 400px; height: 400px; border-radius: 16px; box-shadow: 0 4px 32px rgba(0,0,0,0.3);">
+                                    <div class="mt-3">
+                                      <input type="text" class="form-control text-center" id="shareLink{{ trade.id }}" value="{{ request.url_root | trim('/') }}{{ url_for('main.share_trade', trade_id=trade.id) }}" readonly style="background: #222; color: #fff; border: none;">
+                                      <button class="btn btn-primary mt-2" onclick="copyShareLink('{{ trade.id }}')">Copy Link</button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
                         {% else %}
                             <tr>
                                 <td colspan="12" class="text-center">
@@ -257,5 +275,14 @@
             }
         });
     });
+
+    function copyShareLink(tradeId) {
+      var copyText = document.getElementById('shareLink' + tradeId);
+      copyText.select();
+      copyText.setSelectionRange(0, 99999); // For mobile devices
+      document.execCommand('copy');
+      // Optionally show a tooltip or alert
+      alert('Link copied to clipboard!');
+    }
 </script>
 {% endblock %} 
