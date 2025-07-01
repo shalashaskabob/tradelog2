@@ -698,12 +698,16 @@ def top_trades():
     today = datetime.utcnow().date()
     start_of_week = today - timedelta(days=today.weekday())
     end_of_week = start_of_week + timedelta(days=6)
-    trades = (Trade.query
-        .filter(Trade.show_on_top_trades == True)
+    trades = (
+        Trade.query
+        .join(User)
+        .filter(User.show_on_top_trades == True)
         .filter(Trade.exit_date >= start_of_week)
         .filter(Trade.exit_date <= end_of_week)
         .order_by(Trade.pnl.desc())
-        .all())
+        .limit(10)
+        .all()
+    )
     return render_template('top_trades.html', trades=trades) 
 
 @bp.route('/update_top_trades_optin', methods=['POST'])
