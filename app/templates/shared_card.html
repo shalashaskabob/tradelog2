@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Trade Card</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      background: #181c22;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .card-container {
+      background: #181c22;
+      border-radius: 20px;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.3);
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .card-container img {
+      width: 400px;
+      height: 400px;
+      border-radius: 16px;
+      background: #181c22;
+    }
+    .share-link {
+      color: #fff;
+      margin-top: 16px;
+      word-break: break-all;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="card-container">
+    <img src="{{ card_url }}" alt="Trade Card">
+    <div class="share-link">
+      <small>Share this link: <br>{{ request.url }}</small>
+    </div>
+  </div>
+</body>
+</html> 

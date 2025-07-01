@@ -644,3 +644,9 @@ def share_trade(trade_id):
     card.save(img_io, 'PNG')
     img_io.seek(0)
     return send_file(img_io, mimetype='image/png', as_attachment=False, download_name=f'trade_{trade.id}_card.png') 
+
+@bp.route('/shared/<int:trade_id>')
+def shared_card(trade_id):
+    trade = Trade.query.get_or_404(trade_id)
+    card_url = url_for('main.share_trade', trade_id=trade.id, _external=True)
+    return render_template('shared_card.html', card_url=card_url) 
