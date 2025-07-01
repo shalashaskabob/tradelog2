@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Top Trades - Kingline Capital{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="text-center mb-4">
+                <i class="fas fa-trophy text-warning"></i>
+                Top Trades Leaderboard
+            </h1>
+            
+            {% if trades %}
+                <div class="row">
+                    {% for trade in trades %}
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="card-title mb-0">{{ trade.strategy.name if trade.strategy else 'No Strategy' }}</h6>
+                                    <span class="badge {% if trade.profit_loss > 0 %}bg-success{% elif trade.profit_loss < 0 %}bg-danger{% else %}bg-secondary{% endif %}">
+                                        {{ "${:,.2f}".format(trade.profit_loss) }}
+                                    </span>
+                                </div>
+                                
+                                <p class="card-text small text-muted mb-2">
+                                    <i class="fas fa-calendar"></i> {{ trade.date.strftime('%B %d, %Y') }}
+                                </p>
+                                
+                                {% if trade.notes %}
+                                <p class="card-text">{{ trade.notes[:100] }}{% if trade.notes|length > 100 %}...{% endif %}</p>
+                                {% endif %}
+                                
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">
+                                        <i class="fas fa-user"></i> {{ trade.user.username }}
+                                    </small>
+                                    <a href="{{ url_for('share_trade', trade_id=trade.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-share"></i> Share
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">No Top Trades Yet</h4>
+                    <p class="text-muted">Be the first to share your winning trades!</p>
+                    <a href="{{ url_for('add_trade') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add Your First Trade
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 
