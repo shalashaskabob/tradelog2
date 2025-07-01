@@ -2,7 +2,7 @@ from flask import render_template, redirect, url_for, request, flash, Blueprint,
 from flask_login import current_user, login_required
 from app import db
 from app.models import Trade, Strategy, User
-from datetime import datetime
+from datetime import datetime, timedelta
 from app.forms import ChangePasswordForm
 import os
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
@@ -691,3 +691,27 @@ def shared_card(trade_id):
     card_url = url_for('main.share_trade', trade_id=trade.id, _external=True)
     share_url = request.url.replace('http://', 'https://')
     return render_template('shared_card.html', card_url=card_url, share_url=share_url) 
+
+@bp.route('/top_trades')
+@login_required
+def top_trades():
+    today = datetime.utcnow().date()
+    start_of_week = today - timedelta(days=today.weekday())
+    end_of_week = start_of_week + timedelta(days=6)
+    trades = (Trade.query
+        .filter(Trade.show_on_top_trades == True)
+        .filter(Trade.exit_date >= start_of_week)
+        .filter(Trade.exit_date <= end_of_week)
+        .order_by(Trade.pnl.desc())
+        .all())
+    return render_template('top_trades.html', trades=trades) 
+
+@bp.route('/update_top_trades_optin', methods=['POST'])
+@login_required
+def update_top_trades_optin():
+    show = bool(request.form.get('show_on_top_trades'))
+    current_user.show_on_top_trades = show
+    from app import db
+    db.session.commit()
+    flash('Top Trades opt-in updated.', 'success')
+    return redirect(url_for('main.index')) 

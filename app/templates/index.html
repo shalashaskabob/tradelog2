@@ -22,6 +22,13 @@
                 <button class="btn btn-outline-info ms-2" data-bs-toggle="modal" data-bs-target="#manageStrategiesModal">
                     <i class="bi bi-gear"></i> Manage Strategies
                 </button>
+                <form action="{{ url_for('main.update_top_trades_optin') }}" method="POST" style="display:inline; margin-left: 16px;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="form-check form-switch d-inline-block align-middle">
+                        <input class="form-check-input" type="checkbox" id="topTradesOptIn" name="show_on_top_trades" value="1" onchange="this.form.submit()" {% if current_user.show_on_top_trades %}checked{% endif %}>
+                        <label class="form-check-label ms-1" for="topTradesOptIn">Show my trades on the Top Trades page</label>
+                    </div>
+                </form>
             </div>
         </div>
         <div class="collapse show" id="filterCollapse">
