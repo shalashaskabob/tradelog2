@@ -45,12 +45,7 @@ def create_app(config_class=Config):
         from flask_login import current_user
         from datetime import datetime
         if current_user.is_authenticated:
-            try:
-                current_user.last_seen = datetime.utcnow()
-                db.session.commit()
-            except Exception as e:
-                # Gracefully handle missing last_seen column until migration is applied
-                db.session.rollback()
-                pass
+            current_user.last_seen = datetime.utcnow()
+            db.session.commit()
 
     return app 
