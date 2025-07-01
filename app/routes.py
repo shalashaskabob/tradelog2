@@ -538,13 +538,17 @@ def share_trade(trade_id):
         return redirect(url_for('main.index'))
 
     # Use pre-designed card background as-is (no masking needed)
-    bg_path = os.path.join('app', 'static', 'card_bg.png')
+    # Use absolute path based on current file location for Render compatibility
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    bg_path = os.path.join(current_dir, 'static', 'card_bg.png')
     with Image.open(bg_path).convert('RGBA') as base_img:
         card = base_img.copy()
     width, height = card.size
 
     # Load Roboto font (log error if not found)
-    font_path = os.path.join('app', 'static', 'fonts', 'Roboto-VariableFont_wdth,wght.ttf')
+    # Use absolute path based on current file location for Render compatibility
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    font_path = os.path.join(current_dir, 'static', 'fonts', 'Roboto-VariableFont_wdth,wght.ttf')
     try:
         font_title = ImageFont.truetype(font_path, 64)
         font_label = ImageFont.truetype(font_path, 36)
