@@ -700,7 +700,7 @@ def top_trades():
     end_of_week = start_of_week + timedelta(days=6)
     trades = (
         Trade.query
-        .join(User)
+        .join(User, Trade.user_id == User.id)
         .filter(User.show_on_top_trades == True)
         .filter(Trade.exit_date >= start_of_week)
         .filter(Trade.exit_date <= end_of_week)
