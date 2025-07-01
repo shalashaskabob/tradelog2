@@ -568,7 +568,7 @@ def share_trade(trade_id):
 
     # Centered layout variables
     center_x = width // 2
-    top_margin = 220  # Estimated lion logo height + padding
+    top_margin = 240  # Estimated lion logo height + padding
     y = top_margin
 
     # TRADELOG branding (centered top, below lion logo)
