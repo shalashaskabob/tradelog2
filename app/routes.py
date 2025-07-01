@@ -650,18 +650,22 @@ def share_trade(trade_id):
     col_gap = 120
     col1_x = center_x - col_gap
     col2_x = center_x + col_gap
-    entry_label = "Entry Price"
-    exit_label = "Exit Price"
+    
+    # Use consistent label text for better alignment
+    entry_label = "Entry"
+    exit_label = "Exit"
     entry_label_w, entry_label_h = get_text_size(font_label, entry_label)
     exit_label_w, exit_label_h = get_text_size(font_label, exit_label)
     entry_val = f"{trade.entry_price}"
     exit_val = f"{trade.exit_price if trade.exit_price is not None else '-'}"
     entry_val_w, entry_val_h = get_text_size(font_value, entry_val)
     exit_val_w, exit_val_h = get_text_size(font_value, exit_val)
+    
+    # Align labels and values properly - center each column as a unit
     # Draw labels
     draw.text((col1_x - entry_label_w//2, price_y), entry_label, font=font_label, fill='#b0b0b0')
     draw.text((col2_x - exit_label_w//2, price_y), exit_label, font=font_label, fill='#b0b0b0')
-    # Draw values
+    # Draw values - align with their respective labels
     draw.text((col1_x - entry_val_w//2, price_y + entry_label_h + 8), entry_val, font=font_value, fill='#fff')
     draw.text((col2_x - exit_val_w//2, price_y + exit_label_h + 8), exit_val, font=font_value, fill='#fff')
     # Increment y by the height of label + value + spacing
@@ -826,8 +830,8 @@ def share_trade_png(trade_id):
             col_gap = 120
             col1_x = center_x - col_gap
             col2_x = center_x + col_gap
-            entry_label = "Entry Price"
-            exit_label = "Exit Price"
+            entry_label = "Entry"
+            exit_label = "Exit"
             entry_label_w, entry_label_h = get_text_size(font_label, entry_label)
             exit_label_w, exit_label_h = get_text_size(font_label, exit_label)
             entry_val = f"{trade.entry_price}"
