@@ -140,6 +140,7 @@
                             <th>Exit Price</th>
                             <th>PnL</th>
                             <th>Strategy</th>
+                            <th>Tags</th>
                             <th>Screenshot</th>
                             <th>Notes</th>
                             <th>Actions</th>
@@ -159,6 +160,11 @@
                                     {{ "%.2f"|format(trade.pnl) if trade.pnl is not none else '' }}
                                 </td>
                                 <td>{{ trade.strategy.name }}</td>
+                                <td>
+                                    {% for tag in trade.tags %}
+                                        <span class="badge bg-info text-dark me-1">{{ tag.name }}</span>
+                                    {% endfor %}
+                                </td>
                                 <td>
                                     {% if trade.screenshot %}
                                         <img src="{{ url_for('main.uploaded_file', filepath=trade.screenshot.replace('screenshot', 'thumb')) }}"
