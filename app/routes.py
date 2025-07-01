@@ -593,12 +593,10 @@ def share_trade(trade_id):
 
     # Ticker and badge (centered, badge to right or below if needed)
     ticker_text = trade.ticker
-    # Increase ticker font size
     font_value_large = ImageFont.truetype(font_path, 60)
     ticker_w, ticker_h = get_text_size(font_value_large, ticker_text)
     badge_text = trade.direction.capitalize()
     badge_color = (0, 212, 170, 255) if badge_text == 'Long' else (255, 107, 107, 255)
-    # Increase badge font size
     font_badge = ImageFont.truetype(font_path, 44)
     badge_text_w, badge_text_h = get_text_size(font_badge, badge_text)
     badge_padding_x = 36  # horizontal padding inside badge
@@ -606,19 +604,22 @@ def share_trade(trade_id):
     badge_w = badge_text_w + badge_padding_x
     badge_h = badge_text_h + badge_padding_y
     badge_gap = 20
-    badge_x_right = center_x + ticker_w//2 + badge_gap
-    badge_x_left = badge_x_right
+    # Calculate the total width of ticker + gap + badge
+    total_w = ticker_w + badge_gap + badge_w
+    ticker_x = center_x - total_w // 2
+    badge_x = ticker_x + ticker_w + badge_gap
     badge_y = y + (ticker_h - badge_h) // 2
-    badge_fits = badge_x_right + badge_w < width - 20  # 20px right margin
+    badge_fits = badge_x + badge_w < width - 20
     if badge_fits:
         # Draw ticker
-        draw.text((center_x - ticker_w//2, y), ticker_text, font=font_value_large, fill='#fff')
-        # Draw badge to right of ticker
+        draw.text((ticker_x, y), ticker_text, font=font_value_large, fill='#fff')
+        # Draw badge to right of ticker, perfectly centered
         badge = Image.new('RGBA', (badge_w, badge_h), (0,0,0,0))
         badge_draw = ImageDraw.Draw(badge)
         badge_draw.rounded_rectangle([(0,0),(badge_w,badge_h)], radius=badge_h//2, fill=badge_color)
-        card.paste(badge, (int(badge_x_left), int(badge_y)), badge)
-        draw.text((badge_x_left + (badge_w-badge_text_w)//2, badge_y + (badge_h-badge_text_h)//2), badge_text, font=font_badge, fill='#fff')
+        # Draw text centered in badge
+        badge_draw.text(((badge_w-badge_text_w)//2, (badge_h-badge_text_h)//2), badge_text, font=font_badge, fill='#fff')
+        card.paste(badge, (int(badge_x), int(badge_y)), badge)
         y += max(ticker_h, badge_h) + 30  # 30px spacing
     else:
         # Draw ticker centered
@@ -630,8 +631,8 @@ def share_trade(trade_id):
         badge = Image.new('RGBA', (badge_w, badge_h), (0,0,0,0))
         badge_draw = ImageDraw.Draw(badge)
         badge_draw.rounded_rectangle([(0,0),(badge_w,badge_h)], radius=badge_h//2, fill=badge_color)
+        badge_draw.text(((badge_w-badge_text_w)//2, (badge_h-badge_text_h)//2), badge_text, font=font_badge, fill='#fff')
         card.paste(badge, (int(badge_x_center), int(badge_y)), badge)
-        draw.text((badge_x_center + (badge_w-badge_text_w)//2, badge_y + (badge_h-badge_text_h)//2), badge_text, font=font_badge, fill='#fff')
         y += badge_h + 30  # 30px spacing
 
     # Large PnL (centered, colored)
@@ -794,17 +795,19 @@ def share_trade_png(trade_id):
             badge_w = badge_text_w + badge_padding_x
             badge_h = badge_text_h + badge_padding_y
             badge_gap = 20
-            badge_x_right = center_x + ticker_w//2 + badge_gap
-            badge_x_left = badge_x_right
+            # Calculate the total width of ticker + gap + badge
+            total_w = ticker_w + badge_gap + badge_w
+            ticker_x = center_x - total_w // 2
+            badge_x = ticker_x + ticker_w + badge_gap
             badge_y = y + (ticker_h - badge_h) // 2
-            badge_fits = badge_x_right + badge_w < width - 20
+            badge_fits = badge_x + badge_w < width - 20
             if badge_fits:
-                draw.text((center_x - ticker_w//2, y), ticker_text, font=font_value_large, fill='#fff')
+                draw.text((ticker_x, y), ticker_text, font=font_value_large, fill='#fff')
                 badge = Image.new('RGBA', (badge_w, badge_h), (0,0,0,0))
                 badge_draw = ImageDraw.Draw(badge)
                 badge_draw.rounded_rectangle([(0,0),(badge_w,badge_h)], radius=badge_h//2, fill=badge_color)
-                card.paste(badge, (int(badge_x_left), int(badge_y)), badge)
-                draw.text((badge_x_left + (badge_w-badge_text_w)//2, badge_y + (badge_h-badge_text_h)//2), badge_text, font=font_badge, fill='#fff')
+                badge_draw.text(((badge_w-badge_text_w)//2, (badge_h-badge_text_h)//2), badge_text, font=font_badge, fill='#fff')
+                card.paste(badge, (int(badge_x), int(badge_y)), badge)
                 y += max(ticker_h, badge_h) + 30
             else:
                 draw.text((center_x - ticker_w//2, y), ticker_text, font=font_value_large, fill='#fff')
@@ -814,8 +817,8 @@ def share_trade_png(trade_id):
                 badge = Image.new('RGBA', (badge_w, badge_h), (0,0,0,0))
                 badge_draw = ImageDraw.Draw(badge)
                 badge_draw.rounded_rectangle([(0,0),(badge_w,badge_h)], radius=badge_h//2, fill=badge_color)
+                badge_draw.text(((badge_w-badge_text_w)//2, (badge_h-badge_text_h)//2), badge_text, font=font_badge, fill='#fff')
                 card.paste(badge, (int(badge_x_center), int(badge_y)), badge)
-                draw.text((badge_x_center + (badge_w-badge_text_w)//2, badge_y + (badge_h-badge_text_h)//2), badge_text, font=font_badge, fill='#fff')
                 y += badge_h + 30
             pnl_color = '#00d4aa' if trade.pnl and trade.pnl > 0 else '#ff6b6b' if trade.pnl and trade.pnl < 0 else '#fff'
             pnl_text = f"{trade.pnl if trade.pnl is not None else '-'}"
