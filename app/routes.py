@@ -568,7 +568,7 @@ def share_trade(trade_id):
 
     # Centered layout variables
     center_x = width // 2
-    top_margin = 240  # Estimated lion logo height + padding
+    top_margin = 250  # Estimated lion logo height + padding
     y = top_margin
 
     # TRADELOG branding (centered top, below lion logo)
@@ -576,6 +576,7 @@ def share_trade(trade_id):
     title_w, title_h = get_text_size(font_title, title_text)
     draw.text((center_x - title_w//2, y), title_text, font=font_title, fill='#f7b32b')
     y += title_h + 10  # 10px spacing
+    y += 20  # Move ticker and badge 20px lower
 
     # Ticker and badge (centered, badge to right or below if needed)
     ticker_text = trade.ticker
