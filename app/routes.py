@@ -1,7 +1,7 @@
 from flask import render_template, redirect, url_for, request, flash, Blueprint, jsonify, send_from_directory, send_file
 from flask_login import current_user, login_required
 from app import db
-from app.models import Trade, Strategy, User
+from app.models import Trade, Strategy, User, Tag
 from datetime import datetime, timedelta
 from app.forms import ChangePasswordForm
 import os
@@ -124,7 +124,6 @@ def add_trade():
             if not strategy_name:
                 flash('Strategy name cannot be empty.', 'danger')
                 return redirect(url_for('main.add_trade'))
-            # User-specific strategy
             strategy = Strategy.query.filter_by(name=strategy_name, user_id=current_user.id).first()
             if not strategy:
                 strategy = Strategy(name=strategy_name, user_id=current_user.id)
@@ -143,6 +142,18 @@ def add_trade():
             if request.form.get('exit_price'):
                 new_trade.exit_price = float(request.form.get('exit_price'))
             new_trade.pnl = new_trade.calculate_pnl
+            # Handle tags
+            tag_names = request.form.getlist('tags')
+            new_tag_names = [t.strip() for t in request.form.get('new_tags', '').split(',') if t.strip()]
+            all_tag_names = set(tag_names + new_tag_names)
+            tags = []
+            for tag_name in all_tag_names:
+                tag = Tag.query.filter_by(name=tag_name, user_id=current_user.id).first()
+                if not tag:
+                    tag = Tag(name=tag_name, user_id=current_user.id)
+                    db.session.add(tag)
+                tags.append(tag)
+            new_trade.tags = tags
             db.session.add(new_trade)
             db.session.flush()  # Get trade.id before commit
             # --- Screenshot upload logic ---
@@ -168,13 +179,14 @@ def add_trade():
         except Exception as e:
             db.session.rollback()
             flash(f'Error adding trade: {e}', 'danger')
-    # Only show current user's strategies
     strategies = Strategy.query.filter_by(user_id=current_user.id).order_by(Strategy.name).all()
+    user_tags = Tag.query.filter_by(user_id=current_user.id).order_by(Tag.name).all()
     return render_template(
         'add_trade.html',
         title='Add Trade',
         strategies=strategies,
         symbols=FUTURES_SYMBOLS,
+        user_tags=user_tags
     )
 
 @bp.route('/delete_trade/<int:trade_id>', methods=['POST'])
@@ -417,7 +429,6 @@ def edit_trade(trade_id):
             trade.exit_date = datetime.strptime(request.form['exit_date'], '%Y-%m-%dT%H:%M') if request.form.get('exit_date') else None
             trade.exit_price = float(request.form['exit_price']) if request.form.get('exit_price') else None
             trade.notes = request.form.get('notes')
-            # Strategy (user-specific)
             strategy_name = request.form.get('strategy_choice')
             if strategy_name == '__new__':
                 strategy_name = request.form.get('strategy_new_input')
@@ -429,6 +440,18 @@ def edit_trade(trade_id):
                 strategy = Strategy(name=strategy_name, user_id=current_user.id)
                 db.session.add(strategy)
             trade.strategy = strategy
+            # Handle tags
+            tag_names = request.form.getlist('tags')
+            new_tag_names = [t.strip() for t in request.form.get('new_tags', '').split(',') if t.strip()]
+            all_tag_names = set(tag_names + new_tag_names)
+            tags = []
+            for tag_name in all_tag_names:
+                tag = Tag.query.filter_by(name=tag_name, user_id=current_user.id).first()
+                if not tag:
+                    tag = Tag(name=tag_name, user_id=current_user.id)
+                    db.session.add(tag)
+                tags.append(tag)
+            trade.tags = tags
             # Screenshot update
             file = request.files.get('screenshot')
             if file and file.filename:
@@ -446,7 +469,6 @@ def edit_trade(trade_id):
                     img.thumbnail(THUMB_SIZE)
                     img.save(thumb_path)
                 trade.screenshot = f'{user_id}/{trade_id}/{img_filename}'
-            # Recalculate PnL
             trade.pnl = trade.calculate_pnl
             db.session.commit()
             flash('Trade updated successfully!', 'success')
@@ -454,15 +476,16 @@ def edit_trade(trade_id):
         except Exception as e:
             db.session.rollback()
             flash(f'Error updating trade: {e}', 'danger')
-    # Only show current user's strategies
     strategies = Strategy.query.filter_by(user_id=current_user.id).order_by(Strategy.name).all()
+    user_tags = Tag.query.filter_by(user_id=current_user.id).order_by(Tag.name).all()
     return render_template(
         'add_trade.html',
         title='Edit Trade',
         strategies=strategies,
         symbols=FUTURES_SYMBOLS,
         trade=trade,
-        edit_mode=True
+        edit_mode=True,
+        user_tags=user_tags
     ) 
 
 @bp.route('/delete_strategy/<int:strategy_id>', methods=['POST'])
