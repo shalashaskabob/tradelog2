@@ -3,6 +3,12 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 
+# Association table for many-to-many relationship between Trade and Tag
+trade_tags = db.Table('trade_tags',
+    db.Column('trade_id', db.Integer, db.ForeignKey('trade.id'), primary_key=True),
+    db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True)
+)
+
 @login.user_loader
 def load_user(id):
     return User.query.get(int(id))
@@ -34,6 +40,16 @@ class Strategy(db.Model):
     def __repr__(self):
         return f"Strategy('{self.name}')"
 
+class Tag(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user = db.relationship('User', backref=db.backref('tags', lazy='dynamic'))
+    trades = db.relationship('Trade', secondary=trade_tags, back_populates='tags')
+
+    def __repr__(self):
+        return f'<Tag {self.name}>'
+
 class Trade(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     ticker = db.Column(db.String(20), nullable=False)
@@ -49,6 +65,7 @@ class Trade(db.Model):
     pnl = db.Column(db.Float, default=0)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     screenshot = db.Column(db.String(256))  # stores filename or path
+    tags = db.relationship('Tag', secondary=trade_tags, back_populates='trades')
 
     TICKER_POINT_VALUES = {
         'MNQ': 2,
