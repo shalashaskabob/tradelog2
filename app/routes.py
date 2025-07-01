@@ -751,6 +751,16 @@ def share_trade_png(trade_id):
     if not getattr(trade.trader, 'show_on_top_trades', False):
         flash('You are not authorized to share this trade.', 'danger')
         return redirect(url_for('main.index'))
+
+    # Path to save PNG
+    save_dir = os.path.join('var', 'data', 'trade_cards')
+    os.makedirs(save_dir, exist_ok=True)
+    save_path = os.path.join(save_dir, f"trade_{trade.id}.png")
+
+    # If file exists, serve it
+    if os.path.exists(save_path):
+        return send_file(save_path, mimetype='image/png', as_attachment=False, download_name=f'trade_{trade.id}_card.png')
+
     current_dir = os.path.dirname(os.path.abspath(__file__))
     bg_path = os.path.join(current_dir, 'static', 'card_bg.png')
     with Image.open(bg_path).convert('RGBA') as base_img:
@@ -846,7 +856,6 @@ def share_trade_png(trade_id):
     date_w, date_h = get_text_size(font_small, date_text)
     draw.text((center_x - strat_w//2, bottom_y), strat_text, font=font_small, fill='#b0b0b0')
     draw.text((center_x - date_w//2, bottom_y+strat_h+4), date_text, font=font_small, fill='#b0b0b0')
-    img_io = BytesIO()
-    card.save(img_io, 'PNG')
-    img_io.seek(0)
-    return send_file(img_io, mimetype='image/png', as_attachment=False, download_name=f'trade_{trade.id}_card.png') 
+    # Save PNG to disk
+    card.save(save_path, 'PNG')
+    return send_file(save_path, mimetype='image/png', as_attachment=False, download_name=f'trade_{trade.id}_card.png') 
