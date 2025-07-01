@@ -20,6 +20,7 @@ class User(UserMixin, db.Model):
     is_admin = db.Column(db.Boolean, default=False)
     show_on_top_trades = db.Column(db.Boolean, default=False)
     trades = db.relationship('Trade', backref='trader', lazy='dynamic')
+    last_seen = db.Column(db.DateTime, default=datetime.utcnow)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

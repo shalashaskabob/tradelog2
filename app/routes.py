@@ -142,6 +142,7 @@ def add_trade():
             if request.form.get('exit_price'):
                 new_trade.exit_price = float(request.form.get('exit_price'))
             new_trade.pnl = new_trade.calculate_pnl
+            db.session.add(new_trade)  # Add to session before assigning tags
             # Handle tags
             tag_names = request.form.getlist('tags')
             new_tag_names = [t.strip() for t in request.form.get('new_tags', '').split(',') if t.strip()]
@@ -154,25 +155,6 @@ def add_trade():
                     db.session.add(tag)
                 tags.append(tag)
             new_trade.tags = tags
-            db.session.add(new_trade)
-            db.session.flush()  # Get trade.id before commit
-            # --- Screenshot upload logic ---
-            file = request.files.get('screenshot')
-            if file and file.filename:
-                user_id = current_user.id
-                trade_id = new_trade.id
-                trade_folder = os.path.join(UPLOAD_FOLDER, str(user_id), str(trade_id))
-                os.makedirs(trade_folder, exist_ok=True)
-                ext = os.path.splitext(file.filename)[1].lower()
-                img_filename = f'screenshot{ext}'
-                img_path = os.path.join(trade_folder, img_filename)
-                file.save(img_path)
-                thumb_filename = f'thumb{ext}'
-                thumb_path = os.path.join(trade_folder, thumb_filename)
-                with Image.open(img_path) as img:
-                    img.thumbnail(THUMB_SIZE)
-                    img.save(thumb_path)
-                new_trade.screenshot = f'{user_id}/{trade_id}/{img_filename}'
             db.session.commit()
             flash('Trade added successfully!', 'success')
             return redirect(url_for('main.index'))
@@ -402,6 +384,10 @@ def admin_dashboard():
     # Get recent registrations (last 10 users)
     recent_users = User.query.order_by(User.id.desc()).limit(10).all()
     
+    # Online users: last_seen within 10 minutes
+    ten_minutes_ago = datetime.utcnow() - timedelta(minutes=10)
+    online_users = User.query.filter(User.last_seen >= ten_minutes_ago).count()
+    
     return render_template(
         'admin_dashboard.html',
         title='Admin Dashboard',
@@ -409,7 +395,8 @@ def admin_dashboard():
         active_users=active_users,
         inactive_users=inactive_users,
         users=users,
-        recent_users=recent_users
+        recent_users=recent_users,
+        online_users=online_users
     ) 
 
 @bp.route('/edit_trade/<int:trade_id>', methods=['GET', 'POST'])

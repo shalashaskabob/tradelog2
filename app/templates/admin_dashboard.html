@@ -6,7 +6,7 @@
     
     <!-- User Statistics Cards -->
     <div class="row mt-4">
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card border-primary h-100">
                 <div class="card-body text-center">
                     <h5 class="card-title">Total Users</h5>
@@ -14,7 +14,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card border-success h-100">
                 <div class="card-body text-center">
                     <h5 class="card-title">Active Users</h5>
@@ -23,12 +23,21 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card border-warning h-100">
                 <div class="card-body text-center">
                     <h5 class="card-title">Inactive Users</h5>
                     <p class="card-text fs-1 text-warning">{{ inactive_users }}</p>
                     <small class="text-muted">Users without trades</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Online Now</h5>
+                    <p class="card-text fs-1 text-info">{{ online_users }}</p>
+                    <small class="text-muted">Active in last 10 min</small>
                 </div>
             </div>
         </div>
