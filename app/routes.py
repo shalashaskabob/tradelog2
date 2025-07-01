@@ -584,6 +584,7 @@ def share_trade(trade_id):
     font_value_large = ImageFont.truetype(font_path, 60)
     ticker_w, ticker_h = get_text_size(font_value_large, ticker_text)
     badge_text = trade.direction.capitalize()
+    badge_color = (0, 212, 170, 255) if badge_text == 'Long' else (255, 107, 107, 255)
     # Increase badge font size
     font_badge = ImageFont.truetype(font_path, 44)
     badge_text_w, badge_text_h = get_text_size(font_badge, badge_text)
