@@ -721,11 +721,11 @@ def update_top_trades_optin():
     return redirect(url_for('main.index')) 
 
 @bp.route('/share_trade/<int:trade_id>.png')
+@login_required
 def share_trade_png(trade_id):
-    # Reuse the logic from share_trade
     trade = Trade.query.get_or_404(trade_id)
-    if hasattr(current_user, 'id') and trade.user_id != current_user.id:
-        # If user is logged in and not the owner, block
+    # Only allow if the trade's user has opted in to the leaderboard
+    if not getattr(trade.trader, 'show_on_top_trades', False):
         flash('You are not authorized to share this trade.', 'danger')
         return redirect(url_for('main.index'))
     current_dir = os.path.dirname(os.path.abspath(__file__))
