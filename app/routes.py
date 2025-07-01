@@ -595,7 +595,7 @@ def share_trade(trade_id):
     badge_gap = 20
     badge_x_right = center_x + ticker_w//2 + badge_gap
     badge_x_left = badge_x_right
-    badge_y = y + ticker_h//2 - badge_h//2
+    badge_y = y + (ticker_h - badge_h) // 2
     badge_fits = badge_x_right + badge_w < width - 20  # 20px right margin
     if badge_fits:
         # Draw ticker
