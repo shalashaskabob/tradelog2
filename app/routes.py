@@ -689,4 +689,5 @@ def share_trade(trade_id):
 def shared_card(trade_id):
     trade = Trade.query.get_or_404(trade_id)
     card_url = url_for('main.share_trade', trade_id=trade.id, _external=True)
-    return render_template('shared_card.html', card_url=card_url) 
+    share_url = request.url.replace('http://', 'https://')
+    return render_template('shared_card.html', card_url=card_url, share_url=share_url) 
