@@ -27,3 +27,14 @@ body {
     vertical-align: top;
     text-align: left;
 }
+
+/* Ensure modal background matches card background */
+.modal-content, .modal-body {
+    background: #181c22 !important;
+}
+
+/* Optional: set the image background too, in case of transparency */
+#cardImage {
+    background: #181c22;
+    border-radius: 16px;
+}
