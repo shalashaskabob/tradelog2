@@ -580,40 +580,44 @@ def share_trade(trade_id):
 
     # Ticker and badge (centered, badge to right or below if needed)
     ticker_text = trade.ticker
-    ticker_w, ticker_h = get_text_size(font_value, ticker_text)
+    # Increase ticker font size
+    font_value_large = ImageFont.truetype(font_path, 60)
+    ticker_w, ticker_h = get_text_size(font_value_large, ticker_text)
     badge_text = trade.direction.capitalize()
-    badge_color = (0, 212, 170, 255) if badge_text == 'Long' else (255, 107, 107, 255)
-    badge_w, badge_h = 120, 44
+    # Increase badge font size
+    font_badge = ImageFont.truetype(font_path, 44)
+    badge_text_w, badge_text_h = get_text_size(font_badge, badge_text)
+    badge_padding_x = 36  # horizontal padding inside badge
+    badge_padding_y = 16  # vertical padding inside badge
+    badge_w = badge_text_w + badge_padding_x
+    badge_h = badge_text_h + badge_padding_y
     badge_gap = 20
-    # Calculate badge position: to right of ticker, but if too close to card edge, move below ticker
     badge_x_right = center_x + ticker_w//2 + badge_gap
     badge_x_left = badge_x_right
     badge_y = y + ticker_h//2 - badge_h//2
     badge_fits = badge_x_right + badge_w < width - 20  # 20px right margin
     if badge_fits:
         # Draw ticker
-        draw.text((center_x - ticker_w//2, y), ticker_text, font=font_value, fill='#fff')
+        draw.text((center_x - ticker_w//2, y), ticker_text, font=font_value_large, fill='#fff')
         # Draw badge to right of ticker
         badge = Image.new('RGBA', (badge_w, badge_h), (0,0,0,0))
         badge_draw = ImageDraw.Draw(badge)
-        badge_draw.rounded_rectangle([(0,0),(badge_w,badge_h)], radius=22, fill=badge_color)
+        badge_draw.rounded_rectangle([(0,0),(badge_w,badge_h)], radius=badge_h//2, fill=badge_color)
         card.paste(badge, (int(badge_x_left), int(badge_y)), badge)
-        badge_text_w, badge_text_h = get_text_size(font_label, badge_text)
-        draw.text((badge_x_left + (badge_w-badge_text_w)//2, badge_y + (badge_h-badge_text_h)//2), badge_text, font=font_label, fill='#fff')
+        draw.text((badge_x_left + (badge_w-badge_text_w)//2, badge_y + (badge_h-badge_text_h)//2), badge_text, font=font_badge, fill='#fff')
         y += max(ticker_h, badge_h) + 30  # 30px spacing
     else:
         # Draw ticker centered
-        draw.text((center_x - ticker_w//2, y), ticker_text, font=font_value, fill='#fff')
+        draw.text((center_x - ticker_w//2, y), ticker_text, font=font_value_large, fill='#fff')
         y += ticker_h + 10
         # Draw badge centered below ticker
         badge_x_center = center_x - badge_w//2
         badge_y = y
         badge = Image.new('RGBA', (badge_w, badge_h), (0,0,0,0))
         badge_draw = ImageDraw.Draw(badge)
-        badge_draw.rounded_rectangle([(0,0),(badge_w,badge_h)], radius=22, fill=badge_color)
+        badge_draw.rounded_rectangle([(0,0),(badge_w,badge_h)], radius=badge_h//2, fill=badge_color)
         card.paste(badge, (int(badge_x_center), int(badge_y)), badge)
-        badge_text_w, badge_text_h = get_text_size(font_label, badge_text)
-        draw.text((badge_x_center + (badge_w-badge_text_w)//2, badge_y + (badge_h-badge_text_h)//2), badge_text, font=font_label, fill='#fff')
+        draw.text((badge_x_center + (badge_w-badge_text_w)//2, badge_y + (badge_h-badge_text_h)//2), badge_text, font=font_badge, fill='#fff')
         y += badge_h + 30  # 30px spacing
 
     # Large PnL (centered, colored)
