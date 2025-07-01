@@ -649,10 +649,9 @@ def share_trade(trade_id):
     # Entry/Exit price (two columns, centered below PnL)
     price_y = y
     col_gap = 120
-    col1_x = center_x - col_gap
-    col2_x = center_x + col_gap
-    
-    # Use consistent label text for better alignment
+    col_width = 160  # Fixed width for each column
+    total_cols_w = col_width * 2
+    group_x = center_x - total_cols_w // 2
     entry_label = "Entry"
     exit_label = "Exit"
     entry_label_w, entry_label_h = get_text_size(font_label, entry_label)
@@ -661,15 +660,16 @@ def share_trade(trade_id):
     exit_val = f"{trade.exit_price if trade.exit_price is not None else '-'}"
     entry_val_w, entry_val_h = get_text_size(font_value, entry_val)
     exit_val_w, exit_val_h = get_text_size(font_value, exit_val)
-    
-    # Align labels and values properly - center each column as a unit
+    # Entry column
+    entry_col_x = group_x
+    # Exit column
+    exit_col_x = group_x + col_width
     # Draw labels
-    draw.text((col1_x - entry_label_w//2, price_y), entry_label, font=font_label, fill='#b0b0b0')
-    draw.text((col2_x - exit_label_w//2, price_y), exit_label, font=font_label, fill='#b0b0b0')
-    # Draw values - align with their respective labels
-    draw.text((col1_x - entry_val_w//2, price_y + entry_label_h + 8), entry_val, font=font_value, fill='#fff')
-    draw.text((col2_x - exit_val_w//2, price_y + exit_label_h + 8), exit_val, font=font_value, fill='#fff')
-    # Increment y by the height of label + value + spacing
+    draw.text((entry_col_x + (col_width - entry_label_w)//2, price_y), entry_label, font=font_label, fill='#b0b0b0')
+    draw.text((exit_col_x + (col_width - exit_label_w)//2, price_y), exit_label, font=font_label, fill='#b0b0b0')
+    # Draw values
+    draw.text((entry_col_x + (col_width - entry_val_w)//2, price_y + entry_label_h + 8), entry_val, font=font_value, fill='#fff')
+    draw.text((exit_col_x + (col_width - exit_val_w)//2, price_y + exit_label_h + 8), exit_val, font=font_value, fill='#fff')
     y = price_y + entry_label_h + max(entry_val_h, exit_val_h) + 32
 
     # Strategy and date (bottom center)
@@ -831,8 +831,9 @@ def share_trade_png(trade_id):
             y += pnl_text_h + 36
             price_y = y
             col_gap = 120
-            col1_x = center_x - col_gap
-            col2_x = center_x + col_gap
+            col_width = 160  # Fixed width for each column
+            total_cols_w = col_width * 2
+            group_x = center_x - total_cols_w // 2
             entry_label = "Entry"
             exit_label = "Exit"
             entry_label_w, entry_label_h = get_text_size(font_label, entry_label)
@@ -841,10 +842,16 @@ def share_trade_png(trade_id):
             exit_val = f"{trade.exit_price if trade.exit_price is not None else '-'}"
             entry_val_w, entry_val_h = get_text_size(font_value, entry_val)
             exit_val_w, exit_val_h = get_text_size(font_value, exit_val)
-            draw.text((col1_x - entry_label_w//2, price_y), entry_label, font=font_label, fill='#b0b0b0')
-            draw.text((col2_x - exit_label_w//2, price_y), exit_label, font=font_label, fill='#b0b0b0')
-            draw.text((col1_x - entry_val_w//2, price_y + entry_label_h + 8), entry_val, font=font_value, fill='#fff')
-            draw.text((col2_x - exit_val_w//2, price_y + exit_label_h + 8), exit_val, font=font_value, fill='#fff')
+            # Entry column
+            entry_col_x = group_x
+            # Exit column
+            exit_col_x = group_x + col_width
+            # Draw labels
+            draw.text((entry_col_x + (col_width - entry_label_w)//2, price_y), entry_label, font=font_label, fill='#b0b0b0')
+            draw.text((exit_col_x + (col_width - exit_label_w)//2, price_y), exit_label, font=font_label, fill='#b0b0b0')
+            # Draw values
+            draw.text((entry_col_x + (col_width - entry_val_w)//2, price_y + entry_label_h + 8), entry_val, font=font_value, fill='#fff')
+            draw.text((exit_col_x + (col_width - exit_val_w)//2, price_y + exit_label_h + 8), exit_val, font=font_value, fill='#fff')
             y = price_y + entry_label_h + max(entry_val_h, exit_val_h) + 32
             bottom_y = height - 80
             strat_text = f"Strategy: {trade.strategy.name if trade.strategy else '-'}"
