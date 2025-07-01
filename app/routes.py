@@ -719,3 +719,111 @@ def update_top_trades_optin():
     db.session.commit()
     flash('Top Trades opt-in updated.', 'success')
     return redirect(url_for('main.index')) 
+
+@bp.route('/share_trade/<int:trade_id>.png')
+def share_trade_png(trade_id):
+    # Reuse the logic from share_trade
+    trade = Trade.query.get_or_404(trade_id)
+    if hasattr(current_user, 'id') and trade.user_id != current_user.id:
+        # If user is logged in and not the owner, block
+        flash('You are not authorized to share this trade.', 'danger')
+        return redirect(url_for('main.index'))
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    bg_path = os.path.join(current_dir, 'static', 'card_bg.png')
+    with Image.open(bg_path).convert('RGBA') as base_img:
+        card = base_img.copy()
+    width, height = card.size
+    font_path = os.path.join(current_dir, 'static', 'fonts', 'Roboto-VariableFont_wdth,wght.ttf')
+    try:
+        font_title = ImageFont.truetype(font_path, 64)
+        font_label = ImageFont.truetype(font_path, 36)
+        font_value = ImageFont.truetype(font_path, 48)
+        font_pnl = ImageFont.truetype(font_path, 96)
+        font_small = ImageFont.truetype(font_path, 28)
+    except Exception as e:
+        print(f"[ERROR] Could not load Roboto font: {e}", file=sys.stderr)
+        font_title = font_label = font_value = font_pnl = font_small = ImageFont.load_default()
+    draw = ImageDraw.Draw(card)
+    def get_text_size(font, text):
+        bbox = font.getbbox(text)
+        return bbox[2] - bbox[0], bbox[3] - bbox[1]
+    center_x = width // 2
+    top_margin = 240
+    y = top_margin
+    title_text = "TRADELOG"
+    title_w, title_h = get_text_size(font_title, title_text)
+    draw.text((center_x - title_w//2, y), title_text, font=font_title, fill='#f7b32b')
+    y += title_h + 10
+    y += 20
+    ticker_text = trade.ticker
+    font_value_large = ImageFont.truetype(font_path, 60)
+    ticker_w, ticker_h = get_text_size(font_value_large, ticker_text)
+    badge_text = trade.direction.capitalize()
+    badge_color = (0, 212, 170, 255) if badge_text == 'Long' else (255, 107, 107, 255)
+    font_badge = ImageFont.truetype(font_path, 44)
+    badge_text_w, badge_text_h = get_text_size(font_badge, badge_text)
+    badge_padding_x = 36
+    badge_padding_y = 16
+    badge_w = badge_text_w + badge_padding_x
+    badge_h = badge_text_h + badge_padding_y
+    badge_gap = 20
+    badge_x_right = center_x + ticker_w//2 + badge_gap
+    badge_x_left = badge_x_right
+    badge_y = y + (ticker_h - badge_h) // 2
+    badge_fits = badge_x_right + badge_w < width - 20
+    if badge_fits:
+        draw.text((center_x - ticker_w//2, y), ticker_text, font=font_value_large, fill='#fff')
+        badge = Image.new('RGBA', (badge_w, badge_h), (0,0,0,0))
+        badge_draw = ImageDraw.Draw(badge)
+        badge_draw.rounded_rectangle([(0,0),(badge_w,badge_h)], radius=badge_h//2, fill=badge_color)
+        card.paste(badge, (int(badge_x_left), int(badge_y)), badge)
+        draw.text((badge_x_left + (badge_w-badge_text_w)//2, badge_y + (badge_h-badge_text_h)//2), badge_text, font=font_badge, fill='#fff')
+        y += max(ticker_h, badge_h) + 30
+    else:
+        draw.text((center_x - ticker_w//2, y), ticker_text, font=font_value_large, fill='#fff')
+        y += ticker_h + 10
+        badge_x_center = center_x - badge_w//2
+        badge_y = y
+        badge = Image.new('RGBA', (badge_w, badge_h), (0,0,0,0))
+        badge_draw = ImageDraw.Draw(badge)
+        badge_draw.rounded_rectangle([(0,0),(badge_w,badge_h)], radius=badge_h//2, fill=badge_color)
+        card.paste(badge, (int(badge_x_center), int(badge_y)), badge)
+        draw.text((badge_x_center + (badge_w-badge_text_w)//2, badge_y + (badge_h-badge_text_h)//2), badge_text, font=font_badge, fill='#fff')
+        y += badge_h + 30
+    pnl_color = '#00d4aa' if trade.pnl and trade.pnl > 0 else '#ff6b6b' if trade.pnl and trade.pnl < 0 else '#fff'
+    pnl_text = f"{trade.pnl if trade.pnl is not None else '-'}"
+    pnl_label = "PnL"
+    pnl_label_w, pnl_label_h = get_text_size(font_label, pnl_label)
+    pnl_text_w, pnl_text_h = get_text_size(font_pnl, pnl_text)
+    draw.text((center_x - pnl_label_w//2, y), pnl_label, font=font_label, fill='#b0b0b0')
+    y += pnl_label_h + 8
+    draw.text((center_x - pnl_text_w//2, y), pnl_text, font=font_pnl, fill=pnl_color)
+    y += pnl_text_h + 36
+    price_y = y
+    col_gap = 120
+    col1_x = center_x - col_gap
+    col2_x = center_x + col_gap
+    entry_label = "Entry Price"
+    exit_label = "Exit Price"
+    entry_label_w, entry_label_h = get_text_size(font_label, entry_label)
+    exit_label_w, exit_label_h = get_text_size(font_label, exit_label)
+    entry_val = f"{trade.entry_price}"
+    exit_val = f"{trade.exit_price if trade.exit_price is not None else '-'}"
+    entry_val_w, entry_val_h = get_text_size(font_value, entry_val)
+    exit_val_w, exit_val_h = get_text_size(font_value, exit_val)
+    draw.text((col1_x - entry_label_w//2, price_y), entry_label, font=font_label, fill='#b0b0b0')
+    draw.text((col2_x - exit_label_w//2, price_y), exit_label, font=font_label, fill='#b0b0b0')
+    draw.text((col1_x - entry_val_w//2, price_y + entry_label_h + 8), entry_val, font=font_value, fill='#fff')
+    draw.text((col2_x - exit_val_w//2, price_y + exit_label_h + 8), exit_val, font=font_value, fill='#fff')
+    y = price_y + entry_label_h + max(entry_val_h, exit_val_h) + 32
+    bottom_y = height - 80
+    strat_text = f"Strategy: {trade.strategy.name if trade.strategy else '-'}"
+    date_text = f"Date: {trade.entry_date.strftime('%Y-%m-%d')}"
+    strat_w, strat_h = get_text_size(font_small, strat_text)
+    date_w, date_h = get_text_size(font_small, date_text)
+    draw.text((center_x - strat_w//2, bottom_y), strat_text, font=font_small, fill='#b0b0b0')
+    draw.text((center_x - date_w//2, bottom_y+strat_h+4), date_text, font=font_small, fill='#b0b0b0')
+    img_io = BytesIO()
+    card.save(img_io, 'PNG')
+    img_io.seek(0)
+    return send_file(img_io, mimetype='image/png', as_attachment=False, download_name=f'trade_{trade.id}_card.png') 
