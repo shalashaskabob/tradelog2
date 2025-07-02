@@ -262,28 +262,43 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function loadAccounts() {
+    const accountSelect = document.getElementById('account_id');
+    accountSelect.innerHTML = '<option value="">Loading accounts...</option>';
+    
     fetch('{{ url_for("main.get_tradovate_accounts") }}')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
         .then(data => {
-            const accountSelect = document.getElementById('account_id');
             accountSelect.innerHTML = '<option value="">Select an account</option>';
             
             if (data && Array.isArray(data)) {
-                data.forEach(account => {
-                    const option = document.createElement('option');
-                    option.value = account.id;
-                    option.textContent = `${account.name} (${account.accountType})`;
-                    accountSelect.appendChild(option);
-                });
+                if (data.length === 0) {
+                    accountSelect.innerHTML = '<option value="">No accounts found</option>';
+                } else {
+                    data.forEach(account => {
+                        const option = document.createElement('option');
+                        option.value = account.id;
+                        option.textContent = `${account.name} (${account.accountType})`;
+                        accountSelect.appendChild(option);
+                    });
+                }
             } else if (data.error) {
-                accountSelect.innerHTML = '<option value="">Error loading accounts</option>';
-                console.error('Error loading accounts:', data.error);
+                accountSelect.innerHTML = '<option value="">Error: ' + data.error + '</option>';
+                console.error('API Error:', data.error);
+                alert('Error loading accounts: ' + data.error);
+            } else {
+                accountSelect.innerHTML = '<option value="">Unexpected response format</option>';
+                console.error('Unexpected data format:', data);
             }
         })
         .catch(error => {
-            console.error('Error loading accounts:', error);
-            const accountSelect = document.getElementById('account_id');
-            accountSelect.innerHTML = '<option value="">Error loading accounts</option>';
+            console.error('Network Error:', error);
+            accountSelect.innerHTML = '<option value="">Network error loading accounts</option>';
+            alert('Network error loading accounts: ' + error.message);
         });
 }
 </script>

@@ -1025,7 +1025,7 @@ def get_tradovate_accounts():
     try:
         credentials = TradovateCredentials.query.filter_by(user_id=current_user.id).first()
         if not credentials:
-            return jsonify({'error': 'No credentials found'}), 400
+            return jsonify({'error': 'No Tradovate credentials found. Please set up your connection first.'}), 400
         
         client = TradovateClient(
             access_token=credentials.access_token,
@@ -1034,18 +1034,26 @@ def get_tradovate_accounts():
         
         # Check if token needs refresh
         if credentials.token_expires_at and credentials.token_expires_at <= datetime.utcnow():
-            refresh_result = client.refresh_access_token()
-            credentials.access_token = refresh_result['access_token']
-            credentials.refresh_token = refresh_result['refresh_token']
-            credentials.token_expires_at = datetime.utcnow() + timedelta(seconds=refresh_result['expires_in'])
-            credentials.updated_at = datetime.utcnow()
-            db.session.commit()
+            try:
+                refresh_result = client.refresh_access_token()
+                credentials.access_token = refresh_result['access_token']
+                credentials.refresh_token = refresh_result['refresh_token']
+                credentials.token_expires_at = datetime.utcnow() + timedelta(seconds=refresh_result['expires_in'])
+                credentials.updated_at = datetime.utcnow()
+                db.session.commit()
+            except Exception as refresh_error:
+                return jsonify({'error': f'Token refresh failed: {str(refresh_error)}'}), 401
         
-        accounts = client.get_accounts()
-        return jsonify(accounts)
+        try:
+            accounts = client.get_accounts()
+            if not accounts:
+                return jsonify({'error': 'No accounts found in your Tradovate profile'}), 404
+            return jsonify(accounts)
+        except Exception as api_error:
+            return jsonify({'error': f'Tradovate API error: {str(api_error)}'}), 500
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @bp.route('/tradovate_credentials', methods=['GET', 'POST', 'DELETE'])
 @login_required
