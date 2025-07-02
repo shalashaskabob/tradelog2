@@ -1164,64 +1164,72 @@ def import_csv():
         imported_count = 0
         skipped_count = 0
         
-        for row in csv_reader:
-            try:
-                # Parse trade data from CSV
-                # This is a basic implementation - you may need to adjust based on your CSV format
-                symbol = row.get('Symbol', row.get('symbol', ''))
-                side = row.get('Side', row.get('side', ''))
-                quantity = row.get('Quantity', row.get('quantity', ''))
-                price = row.get('Price', row.get('price', ''))
-                date_str = row.get('Date', row.get('date', ''))
-                pnl = row.get('PnL', row.get('pnl', ''))
-                
-                if not all([symbol, side, quantity, price, date_str]):
-                    continue
-                
-                # Parse date
+        # Check if this is a Tradovate Orders export (has B/S column)
+        is_tradovate_orders = 'B/S' in csv_reader.fieldnames
+        
+        if is_tradovate_orders:
+            # Handle Tradovate Orders export format
+            imported_count, skipped_count = process_tradovate_orders(csv_reader, strategy, current_user)
+        else:
+            # Handle standard trade CSV format
+            for row in csv_reader:
                 try:
-                    trade_date = datetime.strptime(date_str, '%Y-%m-%d')
-                except ValueError:
-                    try:
-                        trade_date = datetime.strptime(date_str, '%m/%d/%Y')
-                    except ValueError:
+                    # Parse trade data from CSV
+                    # This is a basic implementation - you may need to adjust based on your CSV format
+                    symbol = row.get('Symbol', row.get('symbol', ''))
+                    side = row.get('Side', row.get('side', ''))
+                    quantity = row.get('Quantity', row.get('quantity', ''))
+                    price = row.get('Price', row.get('price', ''))
+                    date_str = row.get('Date', row.get('date', ''))
+                    pnl = row.get('PnL', row.get('pnl', ''))
+                    
+                    if not all([symbol, side, quantity, price, date_str]):
                         continue
-                
-                # Check for duplicate trade
-                existing_trade = Trade.query.filter_by(
-                    ticker=symbol,
-                    entry_date=trade_date,
-                    user_id=current_user.id
-                ).first()
-                
-                if existing_trade:
+                    
+                    # Parse date
+                    try:
+                        trade_date = datetime.strptime(date_str, '%Y-%m-%d')
+                    except ValueError:
+                        try:
+                            trade_date = datetime.strptime(date_str, '%m/%d/%Y')
+                        except ValueError:
+                            continue
+                    
+                    # Check for duplicate trade
+                    existing_trade = Trade.query.filter_by(
+                        ticker=symbol,
+                        entry_date=trade_date,
+                        user_id=current_user.id
+                    ).first()
+                    
+                    if existing_trade:
+                        skipped_count += 1
+                        continue
+                    
+                    # Create new trade
+                    trade = Trade(
+                        ticker=symbol,
+                        direction='Long' if side.lower() in ['buy', 'long'] else 'Short',
+                        position_size=float(quantity),
+                        entry_price=float(price),
+                        entry_date=trade_date,
+                        strategy=strategy,
+                        user_id=current_user.id,
+                        notes=f"Imported from CSV - {file.filename}"
+                    )
+                    
+                    if pnl:
+                        try:
+                            trade.pnl = float(pnl)
+                        except ValueError:
+                            pass
+                    
+                    db.session.add(trade)
+                    imported_count += 1
+                    
+                except (ValueError, KeyError) as e:
                     skipped_count += 1
                     continue
-                
-                # Create new trade
-                trade = Trade(
-                    ticker=symbol,
-                    direction='Long' if side.lower() in ['buy', 'long'] else 'Short',
-                    position_size=float(quantity),
-                    entry_price=float(price),
-                    entry_date=trade_date,
-                    strategy=strategy,
-                    user_id=current_user.id,
-                    notes=f"Imported from CSV - {file.filename}"
-                )
-                
-                if pnl:
-                    try:
-                        trade.pnl = float(pnl)
-                    except ValueError:
-                        pass
-                
-                db.session.add(trade)
-                imported_count += 1
-                
-            except (ValueError, KeyError) as e:
-                skipped_count += 1
-                continue
         
         db.session.commit()
         
@@ -1233,4 +1241,113 @@ def import_csv():
     except Exception as e:
         flash(f'Error importing CSV: {str(e)}', 'error')
     
-    return redirect(url_for('main.import_trades')) 
+    return redirect(url_for('main.import_trades'))
+
+def process_tradovate_orders(csv_reader, strategy, current_user):
+    """Process Tradovate Orders export format and convert to trades"""
+    from collections import defaultdict
+    from datetime import datetime
+    
+    # Group orders by date and symbol to create trades
+    trades_by_date_symbol = defaultdict(list)
+    
+    for row in csv_reader:
+        try:
+            # Only process filled orders
+            if row.get('Status', '').strip() != 'Filled':
+                continue
+                
+            symbol = row.get('Contract', '')
+            side = row.get('B/S', '').strip()
+            quantity = row.get('filledQty', '')
+            price = row.get('avgPrice', '')
+            date_str = row.get('Date', '')
+            fill_time = row.get('Fill Time', '')
+            
+            if not all([symbol, side, quantity, price, date_str]):
+                continue
+            
+            # Parse date
+            try:
+                trade_date = datetime.strptime(date_str, '%m/%d/%y')
+            except ValueError:
+                continue
+            
+            # Parse time if available
+            try:
+                if fill_time:
+                    time_part = fill_time.split(' ')[1] if ' ' in fill_time else fill_time
+                    time_obj = datetime.strptime(time_part, '%H:%M:%S').time()
+                    trade_date = trade_date.replace(hour=time_obj.hour, minute=time_obj.minute, second=time_obj.second)
+            except:
+                pass
+            
+            trades_by_date_symbol[(trade_date.date(), symbol)].append({
+                'side': side,
+                'quantity': float(quantity),
+                'price': float(price),
+                'datetime': trade_date,
+                'order_id': row.get('orderId', '')
+            })
+            
+        except (ValueError, KeyError) as e:
+            continue
+    
+    imported_count = 0
+    skipped_count = 0
+    
+    # Process each symbol/date group to create trades
+    for (date, symbol), orders in trades_by_date_symbol.items():
+        if len(orders) < 2:  # Need at least buy and sell
+            skipped_count += 1
+            continue
+        
+        # Sort orders by time
+        orders.sort(key=lambda x: x['datetime'])
+        
+        # Group into buy/sell pairs
+        buys = [o for o in orders if o['side'] == 'Buy']
+        sells = [o for o in orders if o['side'] == 'Sell']
+        
+        if not buys or not sells:
+            skipped_count += 1
+            continue
+        
+        # Create trades from buy/sell pairs
+        for buy in buys:
+            for sell in sells:
+                if sell['datetime'] > buy['datetime']:  # Sell after buy
+                    # Check for duplicate trade
+                    existing_trade = Trade.query.filter_by(
+                        ticker=symbol,
+                        entry_date=buy['datetime'],
+                        user_id=current_user.id
+                    ).first()
+                    
+                    if existing_trade:
+                        skipped_count += 1
+                        continue
+                    
+                    # Calculate PnL
+                    pnl = (sell['price'] - buy['price']) * min(buy['quantity'], sell['quantity'])
+                    
+                    # Create trade
+                    trade = Trade(
+                        ticker=symbol,
+                        direction='Long',
+                        position_size=min(buy['quantity'], sell['quantity']),
+                        entry_price=buy['price'],
+                        entry_date=buy['datetime'],
+                        exit_price=sell['price'],
+                        exit_date=sell['datetime'],
+                        strategy=strategy,
+                        user_id=current_user.id,
+                        notes=f"Imported from Tradovate Orders - Buy: {buy['order_id']}, Sell: {sell['order_id']}",
+                        pnl=pnl
+                    )
+                    
+                    db.session.add(trade)
+                    imported_count += 1
+                    break  # Use this sell order only once
+    
+    return imported_count, skipped_count 
