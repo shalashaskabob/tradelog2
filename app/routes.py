@@ -1102,21 +1102,24 @@ def process_tradovate_orders(csv_reader, strategy, current_user):
     for symbol, orders in orders_by_symbol.items():
         # Sort all fills by time
         orders.sort(key=lambda x: x['datetime'])
-        open_positions = []  # FIFO queue of open buys
+        open_long_positions = []  # FIFO queue of open buys (long positions)
+        open_short_positions = []  # FIFO queue of open sells (short positions)
+        
         for order in orders:
             side = order['side']
             qty = order['quantity']
             price = order['price']
             dt = order['datetime']
             oid = order['order_id']
+            
             if side == 'Buy':
-                open_positions.append({'qty': qty, 'price': price, 'time': dt, 'order_id': oid})
-            elif side == 'Sell':
+                # First, try to close any open short positions
                 qty_to_close = qty
-                while qty_to_close > 0 and open_positions:
-                    open_pos = open_positions[0]
+                while qty_to_close > 0 and open_short_positions:
+                    open_pos = open_short_positions[0]
                     close_qty = min(open_pos['qty'], qty_to_close)
-                    # Check for duplicate trade (entry/exit time, symbol, user, qty)
+                    
+                    # Check for duplicate trade
                     existing_trade = Trade.query.filter_by(
                         ticker=symbol,
                         entry_date=open_pos['time'],
@@ -1129,9 +1132,64 @@ def process_tradovate_orders(csv_reader, strategy, current_user):
                         # Remove from open_positions as if filled, to avoid infinite loop
                         open_pos['qty'] -= close_qty
                         if open_pos['qty'] == 0:
-                            open_positions.pop(0)
+                            open_short_positions.pop(0)
                         qty_to_close -= close_qty
                         continue
+                    
+                    # For short trades: PnL = (entry_price - exit_price) * quantity
+                    pnl = (open_pos['price'] - price) * close_qty
+                    notes = f"Imported from Tradovate Orders - Sell: {open_pos['order_id']}, Buy: {oid}"
+                    trade = Trade(
+                        ticker=symbol,
+                        direction='Short',
+                        position_size=close_qty,
+                        entry_price=open_pos['price'],
+                        entry_date=open_pos['time'],
+                        exit_price=price,
+                        exit_date=dt,
+                        strategy=strategy,
+                        user_id=current_user.id,
+                        notes=notes,
+                        pnl=pnl
+                    )
+                    db.session.add(trade)
+                    imported_count += 1
+                    
+                    # Update open position
+                    open_pos['qty'] -= close_qty
+                    qty_to_close -= close_qty
+                    if open_pos['qty'] == 0:
+                        open_short_positions.pop(0)
+                
+                # If there's remaining quantity, add to long positions
+                if qty_to_close > 0:
+                    open_long_positions.append({'qty': qty_to_close, 'price': price, 'time': dt, 'order_id': oid})
+                    
+            elif side == 'Sell':
+                # First, try to close any open long positions
+                qty_to_close = qty
+                while qty_to_close > 0 and open_long_positions:
+                    open_pos = open_long_positions[0]
+                    close_qty = min(open_pos['qty'], qty_to_close)
+                    
+                    # Check for duplicate trade
+                    existing_trade = Trade.query.filter_by(
+                        ticker=symbol,
+                        entry_date=open_pos['time'],
+                        exit_date=dt,
+                        position_size=close_qty,
+                        user_id=current_user.id
+                    ).first()
+                    if existing_trade:
+                        skipped_count += 1
+                        # Remove from open_positions as if filled, to avoid infinite loop
+                        open_pos['qty'] -= close_qty
+                        if open_pos['qty'] == 0:
+                            open_long_positions.pop(0)
+                        qty_to_close -= close_qty
+                        continue
+                    
+                    # For long trades: PnL = (exit_price - entry_price) * quantity
                     pnl = (price - open_pos['price']) * close_qty
                     notes = f"Imported from Tradovate Orders - Buy: {open_pos['order_id']}, Sell: {oid}"
                     trade = Trade(
@@ -1149,10 +1207,16 @@ def process_tradovate_orders(csv_reader, strategy, current_user):
                     )
                     db.session.add(trade)
                     imported_count += 1
+                    
                     # Update open position
                     open_pos['qty'] -= close_qty
                     qty_to_close -= close_qty
                     if open_pos['qty'] == 0:
-                        open_positions.pop(0)
+                        open_long_positions.pop(0)
+                
+                # If there's remaining quantity, add to short positions
+                if qty_to_close > 0:
+                    open_short_positions.append({'qty': qty_to_close, 'price': price, 'time': dt, 'order_id': oid})
+    
     db.session.commit()
     return imported_count, skipped_count 
