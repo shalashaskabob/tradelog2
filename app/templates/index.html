@@ -257,9 +257,10 @@
                     <span class="badge bg-secondary">In Use</span>
                   {% endif %}
                 </li>
-              {% else %}
-                <li class="list-group-item bg-dark text-white">No strategies found.</li>
               {% endfor %}
+              {% if not strategies %}
+                <li class="list-group-item bg-dark text-white">No strategies found.</li>
+              {% endif %}
             </ul>
           </div>
         </div>
