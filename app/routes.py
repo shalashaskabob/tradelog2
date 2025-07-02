@@ -850,10 +850,12 @@ def share_trade_png(trade_id):
             # Draw labels
             draw.text((entry_col_x + (col_width - entry_label_w)//2, price_y), entry_label, font=font_label, fill='#b0b0b0')
             draw.text((exit_col_x + (col_width - exit_label_w)//2, price_y), exit_label, font=font_label, fill='#b0b0b0')
-            # Draw values
-            draw.text((entry_col_x + (col_width - entry_val_w)//2, price_y + entry_label_h + 8), entry_val, font=font_value, fill='#fff')
-            draw.text((exit_col_x + (col_width - exit_val_w)//2, price_y + exit_label_h + 8), exit_val, font=font_value, fill='#fff')
-            y = price_y + entry_label_h + max(entry_val_h, exit_val_h) + 32
+            # Baseline alignment for values (match share_trade logic)
+            max_val_h = max(entry_val_h, exit_val_h)
+            value_y_base = price_y + entry_label_h + 8 + max_val_h  # baseline for both values
+            draw.text((entry_col_x + (col_width - entry_val_w)//2, value_y_base - entry_val_h), entry_val, font=font_value, fill='#fff')
+            draw.text((exit_col_x + (col_width - exit_val_w)//2, value_y_base - exit_val_h), exit_val, font=font_value, fill='#fff')
+            y = value_y_base + 32
             bottom_y = height - 80
             strat_text = f"Strategy: {trade.strategy.name if trade.strategy else '-'}"
             date_text = f"Date: {trade.entry_date.strftime('%Y-%m-%d')}"
