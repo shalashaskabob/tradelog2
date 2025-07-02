@@ -872,188 +872,12 @@ def share_trade_png(trade_id):
 
 # ---------------------- Tradovate Import ----------------------
 
-@bp.route('/import_trades', methods=['GET', 'POST'])
+@bp.route('/import_trades', methods=['GET'])
 @login_required
 def import_trades():
-    from app.tradovate_client import TradovateClient
-    from app.models import TradovateCredentials
-    
-    if request.method == 'POST':
-        try:
-            # Get or create credentials
-            credentials = TradovateCredentials.query.filter_by(user_id=current_user.id).first()
-            
-            if not credentials:
-                # First time setup - authenticate with username/password
-                username = request.form.get('username')
-                password = request.form.get('password')
-                
-                if not username or not password:
-                    flash('Please provide Tradovate username and password.', 'danger')
-                    return redirect(url_for('main.import_trades'))
-                
-                # Authenticate with Tradovate
-                client = TradovateClient()
-                auth_result = client.authenticate(username, password)
-                
-                # Save credentials
-                credentials = TradovateCredentials(
-                    user_id=current_user.id,
-                    username=username,
-                    access_token=auth_result['access_token'],
-                    refresh_token=auth_result['refresh_token'],
-                    token_expires_at=datetime.utcnow() + timedelta(seconds=auth_result['expires_in'])
-                )
-                db.session.add(credentials)
-                db.session.commit()
-            else:
-                # Use existing credentials
-                client = TradovateClient(
-                    access_token=credentials.access_token,
-                    refresh_token=credentials.refresh_token
-                )
-                
-                # Check if token needs refresh
-                if credentials.token_expires_at and credentials.token_expires_at <= datetime.utcnow():
-                    try:
-                        refresh_result = client.refresh_access_token()
-                        credentials.access_token = refresh_result['access_token']
-                        credentials.refresh_token = refresh_result['refresh_token']
-                        credentials.token_expires_at = datetime.utcnow() + timedelta(seconds=refresh_result['expires_in'])
-                        credentials.updated_at = datetime.utcnow()
-                        db.session.commit()
-                    except Exception as e:
-                        flash(f'Token refresh failed: {str(e)}', 'danger')
-                        return redirect(url_for('main.import_trades'))
-            
-            # Get account ID from form
-            account_id = request.form.get('account_id')
-            if not account_id:
-                flash('Please select an account.', 'danger')
-                return redirect(url_for('main.import_trades'))
-            
-            # Get date range
-            start_date_str = request.form.get('start_date')
-            end_date_str = request.form.get('end_date')
-            
-            start_date = None
-            end_date = None
-            
-            if start_date_str:
-                start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-            if end_date_str:
-                end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
-                end_date = end_date.replace(hour=23, minute=59, second=59)
-            
-            # Get strategy for imported trades
-            strategy_name = request.form.get('strategy_choice')
-            if strategy_name == '__new__':
-                strategy_name = request.form.get('strategy_new_input')
-            if not strategy_name:
-                flash('Strategy name cannot be empty.', 'danger')
-                return redirect(url_for('main.import_trades'))
-            
-            strategy = Strategy.query.filter_by(name=strategy_name, user_id=current_user.id).first()
-            if not strategy:
-                strategy = Strategy(name=strategy_name, user_id=current_user.id)
-                db.session.add(strategy)
-                db.session.commit()
-            
-            # Import trades
-            trades_data = client.get_trades_for_import(account_id, start_date, end_date)
-            
-            if not trades_data:
-                flash('No trades found for the selected date range.', 'info')
-                return redirect(url_for('main.import_trades'))
-            
-            # Import trades into database
-            imported_count = 0
-            skipped_count = 0
-            
-            for trade_data in trades_data:
-                # Check if trade already exists (by Tradovate ID)
-                existing_trade = Trade.query.filter_by(
-                    user_id=current_user.id,
-                    notes=trade_data['notes']
-                ).first()
-                
-                if existing_trade:
-                    skipped_count += 1
-                    continue
-                
-                # Create new trade
-                new_trade = Trade(
-                    ticker=trade_data['ticker'],
-                    entry_date=trade_data['entry_date'],
-                    entry_price=trade_data['entry_price'],
-                    position_size=trade_data['position_size'],
-                    direction=trade_data['direction'],
-                    strategy=strategy,
-                    notes=trade_data['notes'],
-                    pnl=trade_data.get('pnl'),
-                    trader=current_user
-                )
-                
-                db.session.add(new_trade)
-                imported_count += 1
-            
-            db.session.commit()
-            
-            flash(f'Successfully imported {imported_count} trades. Skipped {skipped_count} duplicates.', 'success')
-            return redirect(url_for('main.index'))
-            
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Import failed: {str(e)}', 'danger')
-            return redirect(url_for('main.import_trades'))
-    
-    # GET request - show import form
-    credentials = TradovateCredentials.query.filter_by(user_id=current_user.id).first()
-    strategies = Strategy.query.filter_by(user_id=current_user.id).order_by(Strategy.name).all()
-    
+    """Show import trades page"""
     return render_template('import_trades.html', 
-                         title='Import Trades',
-                         credentials=credentials,
-                         strategies=strategies)
-
-@bp.route('/tradovate_accounts')
-@login_required
-def get_tradovate_accounts():
-    from app.tradovate_client import TradovateClient
-    from app.models import TradovateCredentials
-    
-    try:
-        credentials = TradovateCredentials.query.filter_by(user_id=current_user.id).first()
-        if not credentials:
-            return jsonify({'error': 'No Tradovate credentials found. Please set up your connection first.'}), 400
-        
-        client = TradovateClient(
-            access_token=credentials.access_token,
-            refresh_token=credentials.refresh_token
-        )
-        
-        # Check if token needs refresh
-        if credentials.token_expires_at and credentials.token_expires_at <= datetime.utcnow():
-            try:
-                refresh_result = client.refresh_access_token()
-                credentials.access_token = refresh_result['access_token']
-                credentials.refresh_token = refresh_result['refresh_token']
-                credentials.token_expires_at = datetime.utcnow() + timedelta(seconds=refresh_result['expires_in'])
-                credentials.updated_at = datetime.utcnow()
-                db.session.commit()
-            except Exception as refresh_error:
-                return jsonify({'error': f'Token refresh failed: {str(refresh_error)}'}), 401
-        
-        try:
-            accounts = client.get_accounts()
-            if not accounts:
-                return jsonify({'error': 'No accounts found in your Tradovate profile'}), 404
-            return jsonify(accounts)
-        except Exception as api_error:
-            return jsonify({'error': f'Tradovate API error: {str(api_error)}'}), 500
-        
-    except Exception as e:
-        return jsonify({'error': f'Server error: {str(e)}'}), 500
+                         title='Import Trades')
 
 @bp.route('/tradovate_credentials', methods=['GET', 'POST', 'DELETE'])
 @login_required
@@ -1143,23 +967,12 @@ def import_csv():
         content = file.read().decode('utf-8')
         csv_reader = csv.DictReader(io.StringIO(content))
         
-        # Get strategy choice
-        strategy_choice = request.form.get('csv_strategy_choice')
-        strategy_new_input = request.form.get('csv_strategy_new_input')
-        
-        # Determine strategy
-        if strategy_choice == '__new__' and strategy_new_input:
-            strategy_name = strategy_new_input.strip()
-            strategy = Strategy.query.filter_by(name=strategy_name, user_id=current_user.id).first()
-            if not strategy:
-                strategy = Strategy(name=strategy_name, user_id=current_user.id)
-                db.session.add(strategy)
-                db.session.commit()
-        else:
-            strategy = Strategy.query.filter_by(name=strategy_choice, user_id=current_user.id).first()
-            if not strategy:
-                flash('Selected strategy not found', 'error')
-                return redirect(url_for('main.import_trades'))
+        # Get or create "Imported" strategy
+        strategy = Strategy.query.filter_by(name='Imported', user_id=current_user.id).first()
+        if not strategy:
+            strategy = Strategy(name='Imported', user_id=current_user.id)
+            db.session.add(strategy)
+            db.session.commit()
         
         imported_count = 0
         skipped_count = 0

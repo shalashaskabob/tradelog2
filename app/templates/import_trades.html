@@ -7,214 +7,39 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h1>Import Trades</h1>
                 <div>
-                    <a href="{{ url_for('main.manage_tradovate_credentials') }}" class="btn btn-outline-secondary me-2">
+                    <a href="{{ url_for('main.manage_tradovate_credentials') }}" class="btn btn-outline-secondary">
                         <i class="bi bi-gear"></i> Manage API Credentials
                     </a>
-                    <button class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#csvImportModal">
-                        <i class="bi bi-file-earmark-text"></i> CSV Import
-                    </button>
                 </div>
             </div>
 
-            <!-- Import Options Tabs -->
-            <ul class="nav nav-tabs" id="importTabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="api-tab" data-bs-toggle="tab" data-bs-target="#api-tab-pane" type="button" role="tab">
-                        <i class="bi bi-cloud-download"></i> API Import
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="csv-tab" data-bs-toggle="tab" data-bs-target="#csv-tab-pane" type="button" role="tab">
-                        <i class="bi bi-file-earmark-text"></i> CSV Import
-                    </button>
-                </li>
-            </ul>
-
-            <div class="tab-content" id="importTabsContent">
-                <!-- API Import Tab -->
-                <div class="tab-pane fade show active" id="api-tab-pane" role="tabpanel">
-                    <div class="card mt-3">
-                        <div class="card-header">
-                            <h5 class="mb-0">Import from Tradovate API</h5>
-                            <small class="text-muted">Note: API access may be limited. Try CSV import if this doesn't work.</small>
-                        </div>
-                        <div class="card-body">
-                            {% if not credentials %}
-                                <!-- First time setup -->
-                                <div class="alert alert-info">
-                                    <strong>API Status:</strong> The Tradovate API endpoints may have changed. If authentication fails, please use the CSV import option below.
-                                </div>
-                                <form method="POST" action="{{ url_for('main.import_trades') }}">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="username" class="form-label">Tradovate Username</label>
-                                                <input type="text" class="form-control" id="username" name="username" required>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="password" class="form-label">Tradovate Password</label>
-                                                <input type="password" class="form-control" id="password" name="password" required>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label for="account_id" class="form-label">Account</label>
-                                                <select class="form-select" id="account_id" name="account_id" required>
-                                                    <option value="">Loading accounts...</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label for="start_date" class="form-label">Start Date</label>
-                                                <input type="date" class="form-control" id="start_date" name="start_date" required>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label for="end_date" class="form-label">End Date</label>
-                                                <input type="date" class="form-control" id="end_date" name="end_date" required>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="strategy_choice" class="form-label">Strategy for Imported Trades</label>
-                                        <div id="strategy-picker">
-                                            {% for strategy in strategies %}
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="radio" name="strategy_choice" id="strategy_{{ strategy.id }}" value="{{ strategy.name }}" {% if loop.first %}checked{% endif %}>
-                                                    <label class="form-check-label btn btn-outline-primary" for="strategy_{{ strategy.id }}">{{ strategy.name }}</label>
-                                                </div>
-                                            {% endfor %}
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" name="strategy_choice" id="strat-new-toggle" value="__new__">
-                                                <label class="form-check-label btn btn-outline-success" for="strat-new-toggle">New Strategy</label>
-                                            </div>
-                                        </div>
-                                        <div id="strategy_new_group" class="mt-2" style="display: none;">
-                                            <div class="input-group">
-                                                <input type="text" class="form-control" id="strategy_new_input" name="strategy_new_input" placeholder="Enter new strategy name">
-                                                <button class="btn btn-success" type="button" id="add_strategy_btn">Add Strategy</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="bi bi-download"></i> Import Trades
-                                    </button>
-                                </form>
-                            {% else %}
-                                <!-- Already connected -->
-                                <div class="alert alert-success">
-                                    <strong>Connected:</strong> {{ credentials.username }}
-                                </div>
-                                <form method="POST" action="{{ url_for('main.import_trades') }}">
-                                    <div class="row">
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label for="account_id" class="form-label">Account</label>
-                                                <select class="form-select" id="account_id" name="account_id" required>
-                                                    <option value="">Loading accounts...</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label for="start_date" class="form-label">Start Date</label>
-                                                <input type="date" class="form-control" id="start_date" name="start_date" required>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label for="end_date" class="form-label">End Date</label>
-                                                <input type="date" class="form-control" id="end_date" name="end_date" required>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="strategy_choice" class="form-label">Strategy for Imported Trades</label>
-                                        <div id="strategy-picker">
-                                            {% for strategy in strategies %}
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="radio" name="strategy_choice" id="strategy_{{ strategy.id }}" value="{{ strategy.name }}" {% if loop.first %}checked{% endif %}>
-                                                    <label class="form-check-label btn btn-outline-primary" for="strategy_{{ strategy.id }}">{{ strategy.name }}</label>
-                                                </div>
-                                            {% endfor %}
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" name="strategy_choice" id="strat-new-toggle" value="__new__">
-                                                <label class="form-check-label btn btn-outline-success" for="strat-new-toggle">New Strategy</label>
-                                            </div>
-                                        </div>
-                                        <div id="strategy_new_group" class="mt-2" style="display: none;">
-                                            <div class="input-group">
-                                                <input type="text" class="form-control" id="strategy_new_input" name="strategy_new_input" placeholder="Enter new strategy name">
-                                                <button class="btn btn-success" type="button" id="add_strategy_btn">Add Strategy</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="bi bi-download"></i> Import Trades
-                                    </button>
-                                </form>
-                            {% endif %}
-                        </div>
-                    </div>
+            <!-- CSV Import Section -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Import from CSV File</h5>
+                    <small class="text-muted">Export your trades from Tradovate and upload the CSV file</small>
                 </div>
-
-                <!-- CSV Import Tab -->
-                <div class="tab-pane fade" id="csv-tab-pane" role="tabpanel">
-                    <div class="card mt-3">
-                        <div class="card-header">
-                            <h5 class="mb-0">Import from CSV File</h5>
-                            <small class="text-muted">Export your trades from Tradovate and upload the CSV file</small>
-                        </div>
-                        <div class="card-body">
-                            <div class="alert alert-info">
-                                <h6>How to export from Tradovate:</h6>
-                                <ol>
-                                    <li>Log into your Tradovate account</li>
-                                    <li>Go to Reports → Trade History</li>
-                                    <li>Select your date range</li>
-                                    <li>Click "Export" to download CSV</li>
-                                    <li>Upload the CSV file below</li>
-                                </ol>
-                            </div>
-                            
-                            <form method="POST" action="{{ url_for('main.import_csv') }}" enctype="multipart/form-data">
-                                <div class="mb-3">
-                                    <label for="csv_file" class="form-label">CSV File</label>
-                                    <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="csv_strategy_choice" class="form-label">Strategy for Imported Trades</label>
-                                    <div id="csv-strategy-picker">
-                                        {% for strategy in strategies %}
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" name="csv_strategy_choice" id="csv_strategy_{{ strategy.id }}" value="{{ strategy.name }}" {% if loop.first %}checked{% endif %}>
-                                                <label class="form-check-label btn btn-outline-primary" for="csv_strategy_{{ strategy.id }}">{{ strategy.name }}</label>
-                                            </div>
-                                        {% endfor %}
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="csv_strategy_choice" id="csv_strat-new-toggle" value="__new__">
-                                            <label class="form-check-label btn btn-outline-success" for="csv_strat-new-toggle">New Strategy</label>
-                                        </div>
-                                    </div>
-                                    <div id="csv_strategy_new_group" class="mt-2" style="display: none;">
-                                        <div class="input-group">
-                                            <input type="text" class="form-control" id="csv_strategy_new_input" name="csv_strategy_new_input" placeholder="Enter new strategy name">
-                                            <button class="btn btn-success" type="button" id="csv_add_strategy_btn">Add Strategy</button>
-                                        </div>
-                                    </div>
-                                </div>
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="bi bi-upload"></i> Import CSV
-                                </button>
-                            </form>
-                        </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6>How to export from Tradovate:</h6>
+                        <ol>
+                            <li>Log into your Tradovate account</li>
+                            <li>Go to Reports → Orders (or Trade History)</li>
+                            <li>Select your date range</li>
+                            <li>Click "Export" to download CSV</li>
+                            <li>Upload the CSV file below</li>
+                        </ol>
                     </div>
+                    
+                    <form method="POST" action="{{ url_for('main.import_csv') }}" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="csv_file" class="form-label">CSV File</label>
+                            <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-upload"></i> Import CSV
+                        </button>
+                    </form>
                 </div>
             </div>
 
@@ -230,19 +55,22 @@
                             <ul>
                                 <li>Trade symbol/ticker</li>
                                 <li>Entry date and price</li>
+                                <li>Exit date and price (if available)</li>
                                 <li>Position size</li>
                                 <li>Direction (Long/Short)</li>
-                                <li>Realized PnL (if available)</li>
+                                <li>Realized PnL (calculated automatically)</li>
                                 <li>Trade notes with source reference</li>
+                                <li>Strategy: "Imported" (automatically assigned)</li>
                             </ul>
                         </div>
                         <div class="col-md-6">
                             <h6>Important notes:</h6>
                             <ul>
                                 <li>Duplicate trades are automatically skipped</li>
-                                <li>All imported trades will use the selected strategy</li>
-                                <li>CSV import is recommended if API doesn't work</li>
+                                <li>All imported trades will be marked as "Imported" strategy</li>
+                                <li>PnL is calculated from entry to exit prices</li>
                                 <li>Your credentials are securely stored and encrypted</li>
+                                <li>Supports both standard trade CSV and Tradovate Orders format</li>
                             </ul>
                         </div>
                     </div>
@@ -251,155 +79,4 @@
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Set default dates (last 30 days)
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 30);
-    
-    document.getElementById('end_date').value = endDate.toISOString().split('T')[0];
-    document.getElementById('start_date').value = startDate.toISOString().split('T')[0];
-    
-    // Load accounts if credentials exist
-    {% if credentials %}
-    loadAccounts();
-    {% endif %}
-    
-    // Strategy picker logic for API import
-    setupStrategyPicker('strategy-picker', 'strategy_new_group', 'strategy_new_input', 'add_strategy_btn', 'strat-new-toggle');
-    
-    // Strategy picker logic for CSV import
-    setupStrategyPicker('csv-strategy-picker', 'csv_strategy_new_group', 'csv_strategy_new_input', 'csv_add_strategy_btn', 'csv_strat-new-toggle');
-});
-
-function setupStrategyPicker(pickerId, groupId, inputId, btnId, toggleId) {
-    const strategyPicker = document.getElementById(pickerId);
-    const newStrategyGroup = document.getElementById(groupId);
-    const newStrategyInput = document.getElementById(inputId);
-    const addStrategyBtn = document.getElementById(btnId);
-    const newStratToggle = document.getElementById(toggleId);
-
-    strategyPicker.addEventListener('change', (event) => {
-        if (event.target.name === 'strategy_choice' || event.target.name === 'csv_strategy_choice') {
-            if (event.target.value === '__new__') {
-                newStrategyGroup.style.display = 'flex';
-                newStrategyInput.focus();
-            } else {
-                newStrategyGroup.style.display = 'none';
-            }
-        }
-    });
-
-    // Add new strategy functionality
-    addStrategyBtn.addEventListener('click', function() {
-        const strategyName = newStrategyInput.value.trim();
-        if (!strategyName) {
-            alert('Please enter a strategy name');
-            return;
-        }
-
-        fetch('{{ url_for("main.add_strategy") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: `strategy_name=${encodeURIComponent(strategyName)}`
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Add new strategy to both pickers
-                const newStrategyId = data.strategy_id;
-                const strategyName = data.strategy_name;
-                
-                // Add to API picker
-                addStrategyToPicker('strategy-picker', newStrategyId, strategyName, 'strategy_choice');
-                
-                // Add to CSV picker
-                addStrategyToPicker('csv-strategy-picker', newStrategyId, strategyName, 'csv_strategy_choice');
-                
-                // Clear and hide the new strategy input
-                document.getElementById('strategy_new_input').value = '';
-                document.getElementById('csv_strategy_new_input').value = '';
-                document.getElementById('strategy_new_group').style.display = 'none';
-                document.getElementById('csv_strategy_new_group').style.display = 'none';
-                document.getElementById('strat-new-toggle').checked = false;
-                document.getElementById('csv_strat-new-toggle').checked = false;
-                
-                // Check the new strategy in the current picker
-                const currentPicker = document.activeElement.closest('.tab-pane.active') === document.getElementById('api-tab-pane') ? 'strategy' : 'csv_strategy';
-                const strategyElement = document.getElementById(`${currentPicker}_${newStrategyId}`);
-                if (strategyElement) {
-                    strategyElement.checked = true;
-                }
-            } else {
-                alert('Error: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while adding the strategy.');
-        });
-    });
-}
-
-function addStrategyToPicker(pickerId, strategyId, strategyName, nameAttr) {
-    const strategyPicker = document.getElementById(pickerId);
-    const newStratDiv = document.getElementById('strat-new-toggle') ? document.getElementById('strat-new-toggle').parentElement : document.getElementById('csv_strat-new-toggle').parentElement;
-    
-    const newStrategyDiv = document.createElement('div');
-    newStrategyDiv.className = 'form-check form-check-inline';
-    newStrategyDiv.innerHTML = `
-        <input class="form-check-input" type="radio" name="${nameAttr}" id="${nameAttr}_${strategyId}" value="${strategyName}" checked>
-        <label class="form-check-label btn btn-outline-primary" for="${nameAttr}_${strategyId}">${strategyName}</label>
-    `;
-    
-    strategyPicker.insertBefore(newStrategyDiv, newStratDiv);
-}
-
-function loadAccounts() {
-    const accountSelect = document.getElementById('account_id');
-    accountSelect.innerHTML = '<option value="">Loading accounts...</option>';
-    
-    fetch('{{ url_for("main.get_tradovate_accounts") }}')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            accountSelect.innerHTML = '<option value="">Select an account</option>';
-            
-            if (data && Array.isArray(data)) {
-                if (data.length === 0) {
-                    accountSelect.innerHTML = '<option value="">No accounts found</option>';
-                } else {
-                    data.forEach(account => {
-                        const option = document.createElement('option');
-                        option.value = account.id;
-                        option.textContent = `${account.name} (${account.accountType})`;
-                        accountSelect.appendChild(option);
-                    });
-                }
-            } else if (data.error) {
-                accountSelect.innerHTML = '<option value="">Error: ' + data.error + '</option>';
-                console.error('API Error:', data.error);
-                alert('Error loading accounts: ' + data.error);
-            } else {
-                accountSelect.innerHTML = '<option value="">Unexpected response format</option>';
-                console.error('Unexpected data format:', data);
-            }
-        })
-        .catch(error => {
-            console.error('Network Error:', error);
-            accountSelect.innerHTML = '<option value="">Network error loading accounts</option>';
-            alert('Network error loading accounts: ' + error.message);
-        });
-}
-</script>
 {% endblock %} 
