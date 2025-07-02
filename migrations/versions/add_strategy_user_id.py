@@ -14,11 +14,13 @@ branch_labels = None
 depends_on = None
 
 def upgrade():
-    op.add_column('strategy', sa.Column('user_id', sa.Integer(), nullable=True))
-    op.create_unique_constraint('_user_strategy_uc', 'strategy', ['name', 'user_id'])
+    with op.batch_alter_table('strategy', schema=None) as batch_op:
+        batch_op.add_column(sa.Column('user_id', sa.Integer(), nullable=True))
+        batch_op.create_unique_constraint('_user_strategy_uc', ['name', 'user_id'])
     # If you want to set user_id for existing strategies, you can do it here (e.g., assign to admin or null user)
     # For now, leave as nullable, then alter to non-nullable after manual data migration if needed
 
 def downgrade():
-    op.drop_constraint('_user_strategy_uc', 'strategy', type_='unique')
-    op.drop_column('strategy', 'user_id') 
+    with op.batch_alter_table('strategy', schema=None) as batch_op:
+        batch_op.drop_constraint('_user_strategy_uc', type_='unique')
+        batch_op.drop_column('user_id') 
