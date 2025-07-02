@@ -1142,7 +1142,7 @@ def process_tradovate_orders(csv_reader, strategy, current_user):
                         entry_date=open_pos['time'],
                         exit_price=price,
                         exit_date=dt,
-                        strategy='Imported',
+                        strategy=strategy,
                         user_id=current_user.id,
                         notes=notes,
                         pnl=pnl
