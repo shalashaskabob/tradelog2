@@ -1057,36 +1057,29 @@ def import_csv():
     return redirect(url_for('main.import_trades'))
 
 def process_tradovate_orders(csv_reader, strategy, current_user):
-    """Process Tradovate Orders export format and convert to trades"""
+    """Process Tradovate Orders export format and convert to trades using FIFO ledger logic"""
     from collections import defaultdict
     from datetime import datetime
-    
-    # Group orders by date and symbol to create trades
-    trades_by_date_symbol = defaultdict(list)
-    
+
+    # Group all filled orders by symbol
+    orders_by_symbol = defaultdict(list)
     for row in csv_reader:
         try:
-            # Only process filled orders
             if row.get('Status', '').strip() != 'Filled':
                 continue
-                
             symbol = row.get('Contract', '')
             side = row.get('B/S', '').strip()
             quantity = row.get('filledQty', '')
             price = row.get('avgPrice', '')
             date_str = row.get('Date', '')
             fill_time = row.get('Fill Time', '')
-            
             if not all([symbol, side, quantity, price, date_str]):
                 continue
-            
-            # Parse date
+            # Parse date and time
             try:
                 trade_date = datetime.strptime(date_str, '%m/%d/%y')
             except ValueError:
                 continue
-            
-            # Parse time if available
             try:
                 if fill_time:
                     time_part = fill_time.split(' ')[1] if ' ' in fill_time else fill_time
@@ -1094,109 +1087,72 @@ def process_tradovate_orders(csv_reader, strategy, current_user):
                     trade_date = trade_date.replace(hour=time_obj.hour, minute=time_obj.minute, second=time_obj.second)
             except:
                 pass
-            
-            trades_by_date_symbol[(trade_date.date(), symbol)].append({
+            orders_by_symbol[symbol].append({
                 'side': side,
                 'quantity': float(quantity),
                 'price': float(price),
                 'datetime': trade_date,
                 'order_id': row.get('orderId', '')
             })
-            
-        except (ValueError, KeyError) as e:
+        except Exception:
             continue
-    
+
     imported_count = 0
     skipped_count = 0
-    
-    # Process each symbol/date group to create trades
-    for (date, symbol), orders in trades_by_date_symbol.items():
-        if len(orders) < 2:  # Need at least buy and sell
-            skipped_count += 1
-            continue
-        
-        # Sort orders by time
+    for symbol, orders in orders_by_symbol.items():
+        # Sort all fills by time
         orders.sort(key=lambda x: x['datetime'])
-        
-        # Group into buy/sell orders
-        buys = [o for o in orders if o['side'] == 'Buy']
-        sells = [o for o in orders if o['side'] == 'Sell']
-        
-        if not buys or not sells:
-            skipped_count += 1
-            continue
-        
-        # Track remaining buy quantities for partial sells
-        remaining_buys = buys.copy()
-        
-        # Process each sell order
-        for sell in sells:
-            # Find all buy orders that happened before this sell and still have remaining quantity
-            valid_buys = [buy for buy in remaining_buys if buy['datetime'] < sell['datetime']]
-            
-            if not valid_buys:
-                continue
-            
-            # Calculate weighted average entry price and total available position
-            total_available_quantity = sum(buy['quantity'] for buy in valid_buys)
-            weighted_avg_price = sum(buy['price'] * buy['quantity'] for buy in valid_buys) / total_available_quantity
-            
-            # Determine how much to sell (minimum of available bought and sold)
-            sell_quantity = min(total_available_quantity, sell['quantity'])
-            
-            # Check for duplicate trade
-            existing_trade = Trade.query.filter_by(
-                ticker=symbol,
-                entry_date=valid_buys[0]['datetime'],  # Use first buy as entry date
-                exit_date=sell['datetime'],  # Use sell date to distinguish multiple sells
-                user_id=current_user.id
-            ).first()
-            
-            if existing_trade:
-                skipped_count += 1
-                continue
-            
-            # Calculate PnL
-            pnl = (sell['price'] - weighted_avg_price) * sell_quantity
-            
-            # Create trade notes with all buy order IDs
-            buy_order_ids = [buy['order_id'] for buy in valid_buys]
-            notes = f"Imported from Tradovate Orders - Buys: {', '.join(buy_order_ids)}, Sell: {sell['order_id']}"
-            
-            # Create trade
-            trade = Trade(
-                ticker=symbol,
-                direction='Long',
-                position_size=sell_quantity,
-                entry_price=weighted_avg_price,
-                entry_date=valid_buys[0]['datetime'],
-                exit_price=sell['price'],
-                exit_date=sell['datetime'],
-                strategy=strategy,
-                user_id=current_user.id,
-                notes=notes,
-                pnl=pnl
-            )
-            
-            db.session.add(trade)
-            imported_count += 1
-            
-            # Update remaining buy quantities (for partial sells)
-            remaining_quantity_to_allocate = sell_quantity
-            
-            # Allocate the sell quantity across the buy orders (FIFO)
-            for buy in valid_buys:
-                if remaining_quantity_to_allocate <= 0:
-                    break
-                    
-                if buy['quantity'] <= remaining_quantity_to_allocate:
-                    # This buy is fully consumed
-                    remaining_quantity_to_allocate -= buy['quantity']
-                    if buy in remaining_buys:
-                        remaining_buys.remove(buy)
-                else:
-                    # This buy is partially consumed
-                    buy['quantity'] -= remaining_quantity_to_allocate
-                    remaining_quantity_to_allocate = 0
-    
+        open_positions = []  # FIFO queue of open buys
+        for order in orders:
+            side = order['side']
+            qty = order['quantity']
+            price = order['price']
+            dt = order['datetime']
+            oid = order['order_id']
+            if side == 'Buy':
+                open_positions.append({'qty': qty, 'price': price, 'time': dt, 'order_id': oid})
+            elif side == 'Sell':
+                qty_to_close = qty
+                while qty_to_close > 0 and open_positions:
+                    open_pos = open_positions[0]
+                    close_qty = min(open_pos['qty'], qty_to_close)
+                    # Check for duplicate trade (entry/exit time, symbol, user, qty)
+                    existing_trade = Trade.query.filter_by(
+                        ticker=symbol,
+                        entry_date=open_pos['time'],
+                        exit_date=dt,
+                        position_size=close_qty,
+                        user_id=current_user.id
+                    ).first()
+                    if existing_trade:
+                        skipped_count += 1
+                        # Remove from open_positions as if filled, to avoid infinite loop
+                        open_pos['qty'] -= close_qty
+                        if open_pos['qty'] == 0:
+                            open_positions.pop(0)
+                        qty_to_close -= close_qty
+                        continue
+                    pnl = (price - open_pos['price']) * close_qty
+                    notes = f"Imported from Tradovate Orders - Buy: {open_pos['order_id']}, Sell: {oid}"
+                    trade = Trade(
+                        ticker=symbol,
+                        direction='Long',
+                        position_size=close_qty,
+                        entry_price=open_pos['price'],
+                        entry_date=open_pos['time'],
+                        exit_price=price,
+                        exit_date=dt,
+                        strategy='Imported',
+                        user_id=current_user.id,
+                        notes=notes,
+                        pnl=pnl
+                    )
+                    db.session.add(trade)
+                    imported_count += 1
+                    # Update open position
+                    open_pos['qty'] -= close_qty
+                    qty_to_close -= close_qty
+                    if open_pos['qty'] == 0:
+                        open_positions.pop(0)
+    db.session.commit()
     return imported_count, skipped_count 
