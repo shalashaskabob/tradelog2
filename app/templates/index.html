@@ -264,6 +264,18 @@
         </div>
       </div>
     </div>
+
+    <!-- Add this just before {% endblock %} for content, so it's inside the body -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1100">
+      <div id="copyToast" class="toast align-items-center text-bg-dark border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+          <div class="toast-body">
+            Link Copied!
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      </div>
+    </div>
 {% endblock %}
 
 {% block scripts %}
@@ -295,8 +307,10 @@
       copyText.select();
       copyText.setSelectionRange(0, 99999); // For mobile devices
       document.execCommand('copy');
-      // Optionally show a tooltip or alert
-      alert('Link copied to clipboard!');
+      // Show Bootstrap toast instead of alert
+      var toastEl = document.getElementById('copyToast');
+      var toast = new bootstrap.Toast(toastEl);
+      toast.show();
     }
 </script>
 {% endblock %} 
