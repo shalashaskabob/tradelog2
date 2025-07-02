@@ -1114,4 +1114,123 @@ def manage_tradovate_credentials():
     credentials = TradovateCredentials.query.filter_by(user_id=current_user.id).first()
     return render_template('tradovate_credentials.html', 
                          title='Tradovate Credentials',
-                         credentials=credentials) 
+                         credentials=credentials)
+
+@bp.route('/import_csv', methods=['POST'])
+@login_required
+def import_csv():
+    """Import trades from CSV file"""
+    if 'csv_file' not in request.files:
+        flash('No file selected', 'error')
+        return redirect(url_for('main.import_trades'))
+    
+    file = request.files['csv_file']
+    if file.filename == '':
+        flash('No file selected', 'error')
+        return redirect(url_for('main.import_trades'))
+    
+    if not file.filename.endswith('.csv'):
+        flash('Please select a CSV file', 'error')
+        return redirect(url_for('main.import_trades'))
+    
+    try:
+        # Read CSV file
+        import csv
+        import io
+        from datetime import datetime
+        
+        # Read the file content
+        content = file.read().decode('utf-8')
+        csv_reader = csv.DictReader(io.StringIO(content))
+        
+        # Get strategy choice
+        strategy_choice = request.form.get('csv_strategy_choice')
+        strategy_new_input = request.form.get('csv_strategy_new_input')
+        
+        # Determine strategy
+        if strategy_choice == '__new__' and strategy_new_input:
+            strategy_name = strategy_new_input.strip()
+            strategy = Strategy.query.filter_by(name=strategy_name, user_id=current_user.id).first()
+            if not strategy:
+                strategy = Strategy(name=strategy_name, user_id=current_user.id)
+                db.session.add(strategy)
+                db.session.commit()
+        else:
+            strategy = Strategy.query.filter_by(name=strategy_choice, user_id=current_user.id).first()
+            if not strategy:
+                flash('Selected strategy not found', 'error')
+                return redirect(url_for('main.import_trades'))
+        
+        imported_count = 0
+        skipped_count = 0
+        
+        for row in csv_reader:
+            try:
+                # Parse trade data from CSV
+                # This is a basic implementation - you may need to adjust based on your CSV format
+                symbol = row.get('Symbol', row.get('symbol', ''))
+                side = row.get('Side', row.get('side', ''))
+                quantity = row.get('Quantity', row.get('quantity', ''))
+                price = row.get('Price', row.get('price', ''))
+                date_str = row.get('Date', row.get('date', ''))
+                pnl = row.get('PnL', row.get('pnl', ''))
+                
+                if not all([symbol, side, quantity, price, date_str]):
+                    continue
+                
+                # Parse date
+                try:
+                    trade_date = datetime.strptime(date_str, '%Y-%m-%d')
+                except ValueError:
+                    try:
+                        trade_date = datetime.strptime(date_str, '%m/%d/%Y')
+                    except ValueError:
+                        continue
+                
+                # Check for duplicate trade
+                existing_trade = Trade.query.filter_by(
+                    ticker=symbol,
+                    entry_date=trade_date,
+                    user_id=current_user.id
+                ).first()
+                
+                if existing_trade:
+                    skipped_count += 1
+                    continue
+                
+                # Create new trade
+                trade = Trade(
+                    ticker=symbol,
+                    direction='Long' if side.lower() in ['buy', 'long'] else 'Short',
+                    position_size=float(quantity),
+                    entry_price=float(price),
+                    entry_date=trade_date,
+                    strategy=strategy,
+                    user_id=current_user.id,
+                    notes=f"Imported from CSV - {file.filename}"
+                )
+                
+                if pnl:
+                    try:
+                        trade.pnl = float(pnl)
+                    except ValueError:
+                        pass
+                
+                db.session.add(trade)
+                imported_count += 1
+                
+            except (ValueError, KeyError) as e:
+                skipped_count += 1
+                continue
+        
+        db.session.commit()
+        
+        if imported_count > 0:
+            flash(f'Successfully imported {imported_count} trades. Skipped {skipped_count} duplicates/invalid entries.', 'success')
+        else:
+            flash('No valid trades found in CSV file', 'warning')
+            
+    except Exception as e:
+        flash(f'Error importing CSV: {str(e)}', 'error')
+    
+    return redirect(url_for('main.import_trades')) 

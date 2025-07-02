@@ -6,7 +6,8 @@ import time
 
 class TradovateClient:
     def __init__(self, access_token=None, refresh_token=None):
-        self.base_url = "https://live.tradovate.com/v1"
+        # Try different base URLs - Tradovate API might have changed
+        self.base_url = "https://api.tradovate.com/v1"
         self.access_token = access_token
         self.refresh_token = refresh_token
         self.session = requests.Session()
@@ -37,7 +38,23 @@ class TradovateClient:
                 'expires_in': auth_response.get('expiresIn')
             }
         except requests.exceptions.RequestException as e:
-            raise Exception(f"Authentication failed: {str(e)}")
+            # Try alternative authentication endpoint
+            try:
+                alt_auth_url = f"{self.base_url}/auth/token"
+                response = self.session.post(alt_auth_url, json=auth_data)
+                response.raise_for_status()
+                auth_response = response.json()
+                
+                self.access_token = auth_response.get('accessToken')
+                self.refresh_token = auth_response.get('refreshToken')
+                
+                return {
+                    'access_token': self.access_token,
+                    'refresh_token': self.refresh_token,
+                    'expires_in': auth_response.get('expiresIn')
+                }
+            except requests.exceptions.RequestException as e2:
+                raise Exception(f"Authentication failed: {str(e)} (tried both endpoints)")
     
     def refresh_access_token(self):
         """Refresh the access token using refresh token"""
