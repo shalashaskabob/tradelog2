@@ -217,7 +217,8 @@
                                 </div>
                               </div>
                             </div>
-                        {% else %}
+                        {% endfor %}
+                        {% if not trades %}
                             <tr>
                                 <td colspan="12" class="text-center">
                                     {% if search_query or symbol_filter or strategy_filter or direction_filter or pnl_filter or start_date or end_date %}
@@ -228,7 +229,7 @@
                                     {% endif %}
                                 </td>
                             </tr>
-                        {% endfor %}
+                        {% endif %}
                     </tbody>
                 </table>
             </div>
