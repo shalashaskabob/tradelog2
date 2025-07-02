@@ -832,7 +832,7 @@ def share_trade_png(trade_id):
             y += pnl_text_h + 36
             price_y = y
             col_gap = 120
-            col_width = 160  # Fixed width for each column
+            col_width = 220  # Increased width for more space, matches shareable card
             total_cols_w = col_width * 2
             group_x = center_x - total_cols_w // 2
             entry_label = "Entry"
