@@ -1118,7 +1118,7 @@ def process_tradovate_orders(csv_reader, strategy, current_user):
         # Sort orders by time
         orders.sort(key=lambda x: x['datetime'])
         
-        # Group into buy/sell pairs
+        # Group into buy/sell orders
         buys = [o for o in orders if o['side'] == 'Buy']
         sells = [o for o in orders if o['side'] == 'Sell']
         
@@ -1126,41 +1126,77 @@ def process_tradovate_orders(csv_reader, strategy, current_user):
             skipped_count += 1
             continue
         
-        # Create trades from buy/sell pairs
-        for buy in buys:
-            for sell in sells:
-                if sell['datetime'] > buy['datetime']:  # Sell after buy
-                    # Check for duplicate trade
-                    existing_trade = Trade.query.filter_by(
-                        ticker=symbol,
-                        entry_date=buy['datetime'],
-                        user_id=current_user.id
-                    ).first()
+        # Track remaining buy quantities for partial sells
+        remaining_buys = buys.copy()
+        
+        # Process each sell order
+        for sell in sells:
+            # Find all buy orders that happened before this sell and still have remaining quantity
+            valid_buys = [buy for buy in remaining_buys if buy['datetime'] < sell['datetime']]
+            
+            if not valid_buys:
+                continue
+            
+            # Calculate weighted average entry price and total available position
+            total_available_quantity = sum(buy['quantity'] for buy in valid_buys)
+            weighted_avg_price = sum(buy['price'] * buy['quantity'] for buy in valid_buys) / total_available_quantity
+            
+            # Determine how much to sell (minimum of available bought and sold)
+            sell_quantity = min(total_available_quantity, sell['quantity'])
+            
+            # Check for duplicate trade
+            existing_trade = Trade.query.filter_by(
+                ticker=symbol,
+                entry_date=valid_buys[0]['datetime'],  # Use first buy as entry date
+                exit_date=sell['datetime'],  # Use sell date to distinguish multiple sells
+                user_id=current_user.id
+            ).first()
+            
+            if existing_trade:
+                skipped_count += 1
+                continue
+            
+            # Calculate PnL
+            pnl = (sell['price'] - weighted_avg_price) * sell_quantity
+            
+            # Create trade notes with all buy order IDs
+            buy_order_ids = [buy['order_id'] for buy in valid_buys]
+            notes = f"Imported from Tradovate Orders - Buys: {', '.join(buy_order_ids)}, Sell: {sell['order_id']}"
+            
+            # Create trade
+            trade = Trade(
+                ticker=symbol,
+                direction='Long',
+                position_size=sell_quantity,
+                entry_price=weighted_avg_price,
+                entry_date=valid_buys[0]['datetime'],
+                exit_price=sell['price'],
+                exit_date=sell['datetime'],
+                strategy=strategy,
+                user_id=current_user.id,
+                notes=notes,
+                pnl=pnl
+            )
+            
+            db.session.add(trade)
+            imported_count += 1
+            
+            # Update remaining buy quantities (for partial sells)
+            remaining_quantity_to_allocate = sell_quantity
+            
+            # Allocate the sell quantity across the buy orders (FIFO)
+            for buy in valid_buys:
+                if remaining_quantity_to_allocate <= 0:
+                    break
                     
-                    if existing_trade:
-                        skipped_count += 1
-                        continue
-                    
-                    # Calculate PnL
-                    pnl = (sell['price'] - buy['price']) * min(buy['quantity'], sell['quantity'])
-                    
-                    # Create trade
-                    trade = Trade(
-                        ticker=symbol,
-                        direction='Long',
-                        position_size=min(buy['quantity'], sell['quantity']),
-                        entry_price=buy['price'],
-                        entry_date=buy['datetime'],
-                        exit_price=sell['price'],
-                        exit_date=sell['datetime'],
-                        strategy=strategy,
-                        user_id=current_user.id,
-                        notes=f"Imported from Tradovate Orders - Buy: {buy['order_id']}, Sell: {sell['order_id']}",
-                        pnl=pnl
-                    )
-                    
-                    db.session.add(trade)
-                    imported_count += 1
-                    break  # Use this sell order only once
+                if buy['quantity'] <= remaining_quantity_to_allocate:
+                    # This buy is fully consumed
+                    remaining_quantity_to_allocate -= buy['quantity']
+                    if buy in remaining_buys:
+                        remaining_buys.remove(buy)
+                else:
+                    # This buy is partially consumed
+                    buy['quantity'] -= remaining_quantity_to_allocate
+                    remaining_quantity_to_allocate = 0
     
     return imported_count, skipped_count 
