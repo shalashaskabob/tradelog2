@@ -104,4 +104,19 @@ class Trade(db.Model):
                 return (self.exit_price - self.entry_price) * self.position_size * point_value
             else:
                 return (self.entry_price - self.exit_price) * self.position_size * point_value
-        return 0 
+        return 0
+
+class TradovateCredentials(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    username = db.Column(db.String(100), nullable=False)
+    access_token = db.Column(db.String(500))
+    refresh_token = db.Column(db.String(500))
+    token_expires_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = db.relationship('User', backref=db.backref('tradovate_credentials', lazy='dynamic'))
+    
+    def __repr__(self):
+        return f'<TradovateCredentials {self.username}>' 
