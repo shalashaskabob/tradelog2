@@ -252,9 +252,19 @@ def add_strategy():
 @bp.route('/statistics')
 @login_required
 def statistics():
-    trades = Trade.query.filter_by(user_id=current_user.id).all()
+    # Get account filter from request
+    account_filter = request.args.get('account', '').strip()
+    
+    # Start with base query for current user's trades
+    query = Trade.query.filter_by(user_id=current_user.id)
+    
+    # Apply account filter if specified
+    if account_filter:
+        query = query.filter(Trade.account == account_filter)
+    
+    trades = query.all()
     if not trades:
-        return render_template('statistics.html', title='Statistics', no_trades=True)
+        return render_template('statistics.html', title='Statistics', no_trades=True, account_filter=account_filter)
 
     # Sort trades by execution date (exit_date if present, else entry_date)
     trades_sorted = sorted(trades, key=lambda t: t.exit_date or t.entry_date)
@@ -325,7 +335,19 @@ def statistics():
     strategy_names = list(strategy_pnl.keys())
     strategy_pnls = [round(v, 2) for v in strategy_pnl.values()]
 
-    # --- Chart 4: Trade Outcomes by Direction ---
+    # --- Chart 4: PnL by Account (only if not filtering by account) ---
+    account_pnl = {}
+    if not account_filter:
+        for t in trades_sorted:
+            account_pnl.setdefault(t.account, 0)
+            account_pnl[t.account] += t.pnl or 0
+        account_names = list(account_pnl.keys())
+        account_pnls = [round(v, 2) for v in account_pnl.values()]
+    else:
+        account_names = []
+        account_pnls = []
+
+    # --- Chart 5: Trade Outcomes by Direction ---
     long_losses = len([t for t in long_trades if t.pnl is not None and t.pnl < 0])
     long_be = len([t for t in long_trades if t.pnl is not None and t.pnl == 0])
     short_losses = len([t for t in short_trades if t.pnl is not None and t.pnl < 0])
@@ -336,6 +358,9 @@ def statistics():
     symbol_counts = Counter(t.ticker for t in trades_sorted)
     most_traded_symbol = symbol_counts.most_common(1)[0][0] if symbol_counts else 'N/A'
 
+    # Get unique accounts for the filter dropdown
+    user_accounts = db.session.query(Trade.account).filter_by(user_id=current_user.id).distinct().order_by(Trade.account).all()
+    user_accounts = [account[0] for account in user_accounts]
 
     return render_template(
         'statistics.html',
@@ -363,14 +388,19 @@ def statistics():
         symbol_pnls=symbol_pnls,
         strategy_names=strategy_names,
         strategy_pnls=strategy_pnls,
+        account_names=account_names,
+        account_pnls=account_pnls,
         # Direction Chart Data
         long_wins=long_wins,
         long_losses=long_losses,
         long_be=long_be,
         short_wins=short_wins,
         short_losses=short_losses,
-        short_be=short_be
-    ) 
+        short_be=short_be,
+        # Account filtering
+        account_filter=account_filter,
+        user_accounts=user_accounts
+    )
 
 @bp.route('/change-password', methods=['GET', 'POST'])
 @login_required
