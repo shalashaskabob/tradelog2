@@ -619,7 +619,7 @@ def calendar():
         daily_trades = {}
         for row in daily_pnl_query:
             daily_pnl[row.trade_date] = float(row.total_pnl)
-            daily_trades[row.trade_date] = int(row.trade_count)
+            daily_trades[row.trade_date] = int(row.trade_count)  # This is the count, not a list
     except Exception as e:
         # Fallback to Python processing if database aggregation fails
         print(f"Database aggregation failed, using Python fallback: {e}")
@@ -638,7 +638,7 @@ def calendar():
                 daily_pnl[trade_date] = 0
                 daily_trades[trade_date] = 0
             daily_pnl[trade_date] += trade.pnl or 0
-            daily_trades[trade_date] += 1
+            daily_trades[trade_date] += 1  # This is the count, not a list
     
     # Aggregate PnL by week (ISO week) - using Python calculation for compatibility
     week_pnl = {}
