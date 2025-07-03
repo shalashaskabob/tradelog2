@@ -88,6 +88,7 @@ class Trade(db.Model):
         db.Index('idx_trade_user_exit_date', 'user_id', 'exit_date'),  # Composite index for top trades
         db.Index('idx_trade_user_entry_date', 'user_id', 'entry_date'),  # Composite index for main listing
         db.Index('idx_trade_user_pnl', 'user_id', 'pnl'),  # Composite index for PnL queries
+        db.Index('idx_trade_user_entry_pnl', 'user_id', 'entry_date', 'pnl'),  # Composite index for calendar queries
     )
 
     TICKER_POINT_VALUES = {

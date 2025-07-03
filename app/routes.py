@@ -581,37 +581,57 @@ def calendar():
     # Get month/year from query params or default to current
     year = request.args.get('year', type=int) or datetime.now().year
     month = request.args.get('month', type=int) or datetime.now().month
-    # Get all trades for the user in this month
+    
+    # Get month boundaries
     start_date = date(year, month, 1)
     last_day = monthrange(year, month)[1]
     end_date = date(year, month, last_day)
-    trades = Trade.query.filter(
+    
+    # Use database aggregation for better performance
+    # Get daily PnL totals using SQL aggregation
+    daily_pnl_query = db.session.query(
+        db.func.date(Trade.entry_date).label('trade_date'),
+        db.func.sum(Trade.pnl).label('total_pnl'),
+        db.func.count(Trade.id).label('trade_count')
+    ).filter(
         Trade.user_id == current_user.id,
         Trade.entry_date >= start_date,
-        Trade.entry_date < end_date + timedelta(days=1)
-    ).all()
-    # Aggregate PnL by day
+        Trade.entry_date < end_date + timedelta(days=1),
+        Trade.pnl.isnot(None)
+    ).group_by(db.func.date(Trade.entry_date)).all()
+    
+    # Convert to dictionaries for template
     daily_pnl = {}
     daily_trades = {}
-    for t in trades:
-        d = t.entry_date.date()
-        daily_pnl.setdefault(d, 0)
-        daily_trades.setdefault(d, []).append(t)
-        daily_pnl[d] += t.pnl or 0
-    # Aggregate PnL by week (ISO week)
+    for row in daily_pnl_query:
+        daily_pnl[row.trade_date] = float(row.total_pnl)
+        daily_trades[row.trade_date] = int(row.trade_count)
+    
+    # Aggregate PnL by week (ISO week) - also using database
+    week_pnl_query = db.session.query(
+        db.func.extract('week', Trade.entry_date).label('week_num'),
+        db.func.sum(Trade.pnl).label('total_pnl')
+    ).filter(
+        Trade.user_id == current_user.id,
+        Trade.entry_date >= start_date,
+        Trade.entry_date < end_date + timedelta(days=1),
+        Trade.pnl.isnot(None)
+    ).group_by(db.func.extract('week', Trade.entry_date)).all()
+    
     week_pnl = {}
-    for d, pnl in daily_pnl.items():
-        week = d.isocalendar()[1]
-        week_pnl.setdefault(week, 0)
-        week_pnl[week] += pnl
+    for row in week_pnl_query:
+        week_pnl[int(row.week_num)] = float(row.total_pnl)
+    
     # Prepare calendar grid
     cal_grid = cal.monthcalendar(year, month)
+    
     # Build a mapping from (year, month, day) to date object
     calendar_cells = {}
     for week in cal_grid:
         for day in week:
             if day != 0:
                 calendar_cells[(year, month, day)] = date(year, month, day)
+    
     return render_template('calendar.html',
         title='PnL Calendar',
         year=year,
@@ -803,13 +823,13 @@ def top_trades():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 12, type=int)  # Default 12 trades per page (4 rows of 3)
     
-    # Build query with pagination
+    # Build query with pagination - show all completed trades from users who opted in
     query = (
         Trade.query
         .join(User, Trade.user_id == User.id)
         .filter(User.show_on_top_trades == True)
-        .filter(Trade.exit_date >= start_of_week)
-        .filter(Trade.exit_date <= end_of_week)
+        .filter(Trade.exit_date.isnot(None))  # Only completed trades
+        .filter(Trade.pnl.isnot(None))  # Only trades with PnL calculated
         .order_by(Trade.pnl.desc())
     )
     
