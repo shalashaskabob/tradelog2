@@ -591,6 +591,7 @@ def delete_strategy(strategy_id):
 @bp.route('/calendar')
 @login_required
 def calendar():
+    print("=== CALENDAR ROUTE CALLED ===")
     from datetime import datetime, timedelta, date
     # Get month/year from query params or default to current
     year = request.args.get('year', type=int) or datetime.now().year
@@ -693,16 +694,23 @@ def calendar():
             daily_pnl[sample_date] = random.uniform(-100, 200)
             daily_trades[sample_date] = random.randint(0, 5)
     
-    return render_template('calendar.html',
-        title='PnL Calendar',
-        year=year,
-        month=month,
-        cal_grid=cal_grid,
-        daily_pnl=daily_pnl,
-        daily_trades=daily_trades,
-        week_pnl=week_pnl,
-        month_name=start_date.strftime('%B'),
-        calendar_cells=calendar_cells) 
+    try:
+        return render_template('calendar.html',
+            title='PnL Calendar',
+            year=year,
+            month=month,
+            cal_grid=cal_grid,
+            daily_pnl=daily_pnl,
+            daily_trades=daily_trades,
+            week_pnl=week_pnl,
+            month_name=start_date.strftime('%B'),
+            calendar_cells=calendar_cells)
+    except Exception as e:
+        print(f"ERROR in calendar template rendering: {e}")
+        import traceback
+        traceback.print_exc()
+        # Return a simple error page
+        return f"Calendar Error: {e}", 500 
 
 @bp.route('/share_trade/<int:trade_id>')
 @login_required
