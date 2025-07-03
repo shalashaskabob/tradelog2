@@ -11,6 +11,24 @@
                 Top Trades Leaderboard
             </h1>
             
+            <!-- Week Display -->
+            <div class="text-center mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title mb-2">
+                            <i class="fas fa-calendar-week text-primary"></i>
+                            Current Week
+                        </h5>
+                        <p class="card-text text-muted mb-0">
+                            {{ start_of_week.strftime('%B %d, %Y') }} - {{ end_of_week.strftime('%B %d, %Y') }}
+                        </p>
+                        <small class="text-muted">
+                            Showing completed trades from users who have opted in to the leaderboard
+                        </small>
+                    </div>
+                </div>
+            </div>
+            
             {% if trades %}
                 <div class="row">
                     {% for trade in trades %}

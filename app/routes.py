@@ -823,13 +823,15 @@ def top_trades():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 12, type=int)  # Default 12 trades per page (4 rows of 3)
     
-    # Build query with pagination - show all completed trades from users who opted in
+    # Build query with pagination - show completed trades from current week only
     query = (
         Trade.query
         .join(User, Trade.user_id == User.id)
         .filter(User.show_on_top_trades == True)
         .filter(Trade.exit_date.isnot(None))  # Only completed trades
         .filter(Trade.pnl.isnot(None))  # Only trades with PnL calculated
+        .filter(Trade.exit_date >= start_of_week)  # Current week only
+        .filter(Trade.exit_date <= end_of_week)  # Current week only
         .order_by(Trade.pnl.desc())
     )
     
@@ -844,7 +846,9 @@ def top_trades():
                          trades=trades, 
                          pagination=pagination,
                          page=page,
-                         per_page=per_page) 
+                         per_page=per_page,
+                         start_of_week=start_of_week,
+                         end_of_week=end_of_week) 
 
 @bp.route('/update_top_trades_optin', methods=['POST'])
 @login_required
