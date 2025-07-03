@@ -206,7 +206,7 @@
                                             <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                                         </form>
                                         <a href="{{ url_for('main.edit_trade', trade_id=trade.id) }}" class="btn btn-sm btn-secondary">Edit</a>
-                                        <a href="#" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#shareModal{{ trade.id }}">Share</a>
+                                        <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#shareModal{{ trade.id }}" onclick="console.log('Share button clicked for trade {{ trade.id }}');">Share</button>
                                     </div>
                                 </td>
                             </tr>
@@ -353,5 +353,19 @@
       var toast = new bootstrap.Toast(toastEl);
       toast.show();
     }
+
+    // Debug function to check if modals exist
+    function debugModals() {
+      console.log('Bootstrap available:', typeof bootstrap !== 'undefined');
+      console.log('Modal elements found:', document.querySelectorAll('.modal').length);
+      document.querySelectorAll('.modal').forEach(function(modal) {
+        console.log('Modal ID:', modal.id);
+      });
+    }
+
+    // Run debug on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      debugModals();
+    });
 </script>
 {% endblock %} 
