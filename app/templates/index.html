@@ -206,32 +206,31 @@
                                             <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                                         </form>
                                         <a href="{{ url_for('main.edit_trade', trade_id=trade.id) }}" class="btn btn-sm btn-secondary">Edit</a>
-                                        <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#shareModal{{ trade.id }}" onclick="console.log('Share button clicked for trade {{ trade.id }}');">Share</button>
+                                        <a href="#" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#shareModal{{ trade.id }}">Share</a>
                                     </div>
                                 </td>
                             </tr>
-                        {% endfor %}
-                        
-                        <!-- Share Modals -->
-                        {% for trade in trades %}
-                        <div class="modal fade" id="shareModal{{ trade.id }}" tabindex="-1" aria-labelledby="shareModalLabel{{ trade.id }}" aria-hidden="true">
-                          <div class="modal-dialog modal-dialog-centered">
-                            <div class="modal-content bg-dark text-white" style="border-radius: 16px;">
-                              <div class="modal-header border-0">
-                                <h5 class="modal-title" id="shareModalLabel{{ trade.id }}">Share Trade Card</h5>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                              </div>
-                              <div class="modal-body text-center">
-                                <img id="cardImage{{ trade.id }}" src="{{ url_for('main.share_trade', trade_id=trade.id) }}" alt="Trade Card" style="width: 400px; height: 400px; border-radius: 16px; box-shadow: 0 4px 32px rgba(0,0,0,0.3);">
-                                <div class="mt-3">
-                                  <input type="text" class="form-control text-center" id="shareLink{{ trade.id }}" value="{{ request.url_root | trim('/') }}{{ url_for('main.share_trade_png', trade_id=trade.id) }}" readonly style="background: #222; color: #fff; border: none;">
-                                  <button class="btn btn-primary mt-2" onclick="copyShareLink('{{ trade.id }}')">Copy Link</button>
+                            <!-- Share Modal -->
+                            <div class="modal fade" id="shareModal{{ trade.id }}" tabindex="-1" aria-labelledby="shareModalLabel{{ trade.id }}" aria-hidden="true">
+                              <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content bg-dark text-white" style="border-radius: 16px;">
+                                  <div class="modal-header border-0">
+                                    <h5 class="modal-title" id="shareModalLabel{{ trade.id }}">Share Trade Card</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                  </div>
+                                  <div class="modal-body text-center">
+                                    <img id="cardImage{{ trade.id }}" src="{{ url_for('main.share_trade', trade_id=trade.id) }}" alt="Trade Card" style="width: 400px; height: 400px; border-radius: 16px; box-shadow: 0 4px 32px rgba(0,0,0,0.3);">
+                                    <div class="mt-3">
+                                      <input type="text" class="form-control text-center" id="shareLink{{ trade.id }}" value="{{ request.url_root | trim('/') }}{{ url_for('main.share_trade_png', trade_id=trade.id) }}" readonly style="background: #222; color: #fff; border: none;">
+                                      <button class="btn btn-primary mt-2" onclick="copyShareLink('{{ trade.id }}')">Copy Link</button>
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        </div>
                         {% endfor %}
+                        
+
                         
                         {% if not trades %}
                             <tr>
