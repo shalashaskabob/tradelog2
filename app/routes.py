@@ -696,7 +696,7 @@ def share_trade(trade_id):
 
     # Large PnL (centered, colored)
     pnl_color = '#00d4aa' if trade.pnl and trade.pnl > 0 else '#ff6b6b' if trade.pnl and trade.pnl < 0 else '#fff'
-    pnl_text = f"{trade.pnl if trade.pnl is not None else '-'}"
+    pnl_text = f"{trade.pnl:.2f}" if trade.pnl is not None else '-'
     pnl_label = "PnL"
     pnl_label_w, pnl_label_h = get_text_size(font_label, pnl_label)
     pnl_text_w, pnl_text_h = get_text_size(font_pnl, pnl_text)
@@ -714,8 +714,8 @@ def share_trade(trade_id):
     exit_label = "Exit"
     entry_label_w, entry_label_h = get_text_size(font_label, entry_label)
     exit_label_w, exit_label_h = get_text_size(font_label, exit_label)
-    entry_val = f"{trade.entry_price}"
-    exit_val = f"{trade.exit_price if trade.exit_price is not None else '-'}"
+    entry_val = f"{trade.entry_price:.2f}"
+    exit_val = f"{trade.exit_price:.2f}" if trade.exit_price is not None else '-'
     entry_val_w, entry_val_h = get_text_size(font_value, entry_val)
     exit_val_w, exit_val_h = get_text_size(font_value, exit_val)
     # Entry column
@@ -881,7 +881,7 @@ def share_trade_png(trade_id):
                 card.paste(badge, (int(badge_x_center), int(badge_y)), badge)
                 y += badge_h + 30
             pnl_color = '#00d4aa' if trade.pnl and trade.pnl > 0 else '#ff6b6b' if trade.pnl and trade.pnl < 0 else '#fff'
-            pnl_text = f"{trade.pnl if trade.pnl is not None else '-'}"
+            pnl_text = f"{trade.pnl:.2f}" if trade.pnl is not None else '-'
             pnl_label = "PnL"
             pnl_label_w, pnl_label_h = get_text_size(font_label, pnl_label)
             pnl_text_w, pnl_text_h = get_text_size(font_pnl, pnl_text)
@@ -898,8 +898,8 @@ def share_trade_png(trade_id):
             exit_label = "Exit"
             entry_label_w, entry_label_h = get_text_size(font_label, entry_label)
             exit_label_w, exit_label_h = get_text_size(font_label, exit_label)
-            entry_val = f"{trade.entry_price}"
-            exit_val = f"{trade.exit_price if trade.exit_price is not None else '-'}"
+            entry_val = f"{trade.entry_price:.2f}"
+            exit_val = f"{trade.exit_price:.2f}" if trade.exit_price is not None else '-'
             entry_val_w, entry_val_h = get_text_size(font_value, entry_val)
             exit_val_w, exit_val_h = get_text_size(font_value, exit_val)
             # Entry column
@@ -1195,7 +1195,7 @@ def process_tradovate_orders(csv_reader, strategy, current_user):
                     point_value = Trade.TICKER_POINT_VALUES.get(base_symbol.upper(), 1)
                     gross_pnl = (avg_short_entry - price) * qty_to_close * point_value
                     net_pnl = gross_pnl - (qty_to_close * COMMISSION_PER_CONTRACT * 2)
-                    notes = f"Imported from Tradovate Orders - Short: {', '.join([e['order_id'] for e in short_entries])}, Buy: {oid}"
+                    notes = 'Imported from Tradovate'
                     
                     # Check for duplicate trade
                     existing_trade = Trade.query.filter_by(
@@ -1256,7 +1256,7 @@ def process_tradovate_orders(csv_reader, strategy, current_user):
                     point_value = Trade.TICKER_POINT_VALUES.get(base_symbol.upper(), 1)
                     gross_pnl = (price - avg_long_entry) * qty_to_close * point_value
                     net_pnl = gross_pnl - (qty_to_close * COMMISSION_PER_CONTRACT * 2)
-                    notes = f"Imported from Tradovate Orders - Long: {', '.join([e['order_id'] for e in long_entries])}, Sell: {oid}"
+                    notes = 'Imported from Tradovate'
                     
                     # Check for duplicate trade
                     existing_trade = Trade.query.filter_by(
