@@ -206,7 +206,7 @@
                                             <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                                         </form>
                                         <a href="{{ url_for('main.edit_trade', trade_id=trade.id) }}" class="btn btn-sm btn-secondary">Edit</a>
-                                        <a href="#" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#shareModal{{ trade.id }}">Share</a>
+                                        <a href="#" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#shareModal{{ trade.id }}" onclick="console.log('Share clicked for trade {{ trade.id }}'); console.log('Modal element:', document.getElementById('shareModal{{ trade.id }}')); console.log('Bootstrap:', typeof bootstrap);">Share</a>
                                     </div>
                                 </td>
                             </tr>
