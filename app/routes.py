@@ -33,6 +33,7 @@ def index():
     symbol_filter = request.args.get('symbol', '').strip()
     strategy_filter = request.args.get('strategy', '').strip()
     direction_filter = request.args.get('direction', '').strip()
+    account_filter = request.args.get('account', '').strip()
     pnl_filter = request.args.get('pnl', '').strip()
     start_date = request.args.get('start_date', '').strip()
     end_date = request.args.get('end_date', '').strip()
@@ -58,6 +59,9 @@ def index():
     
     if direction_filter:
         query = query.filter(Trade.direction == direction_filter)
+    
+    if account_filter:
+        query = query.filter(Trade.account == account_filter)
     
     if pnl_filter:
         if pnl_filter == 'profit':
@@ -92,6 +96,8 @@ def index():
     user_strategies = Strategy.query.filter_by(user_id=current_user.id).order_by(Strategy.name).all()
     user_symbols = db.session.query(Trade.ticker).filter_by(user_id=current_user.id).distinct().order_by(Trade.ticker).all()
     user_symbols = [symbol[0] for symbol in user_symbols]
+    user_accounts = db.session.query(Trade.account).filter_by(user_id=current_user.id).distinct().order_by(Trade.account).all()
+    user_accounts = [account[0] for account in user_accounts]
     
     return render_template('index.html', 
                          title='Home', 
@@ -100,11 +106,13 @@ def index():
                          symbol_filter=symbol_filter,
                          strategy_filter=strategy_filter,
                          direction_filter=direction_filter,
+                         account_filter=account_filter,
                          pnl_filter=pnl_filter,
                          start_date=start_date,
                          end_date=end_date,
                          symbols=FUTURES_SYMBOLS,
                          user_symbols=user_symbols,
+                         user_accounts=user_accounts,
                          strategies=user_strategies)
 
 @bp.route('/uploads/<path:filepath>')
@@ -133,6 +141,7 @@ def add_trade():
                 db.session.add(strategy)
             new_trade = Trade(
                 ticker=request.form['ticker'],
+                account=request.form.get('new_account') or request.form.get('account', 'Default'),
                 entry_date=entry_date,
                 entry_price=float(request.form['entry_price']),
                 position_size=float(request.form['position_size']),
@@ -166,12 +175,17 @@ def add_trade():
             flash(f'Error adding trade: {e}', 'danger')
     strategies = Strategy.query.filter_by(user_id=current_user.id).order_by(Strategy.name).all()
     user_tags = Tag.query.filter_by(user_id=current_user.id).order_by(Tag.name).all()
+    user_accounts = db.session.query(Trade.account).filter_by(user_id=current_user.id).distinct().order_by(Trade.account).all()
+    user_accounts = [account[0] for account in user_accounts]
+    if not user_accounts:
+        user_accounts = ['Default']
     return render_template(
         'add_trade.html',
         title='Add Trade',
         strategies=strategies,
         symbols=FUTURES_SYMBOLS,
-        user_tags=user_tags
+        user_tags=user_tags,
+        user_accounts=user_accounts
     )
 
 @bp.route('/delete_trade/<int:trade_id>', methods=['POST'])
@@ -1088,6 +1102,7 @@ def process_tradovate_orders(csv_reader, strategy, current_user):
             price = row.get('avgPrice', '')
             date_str = row.get('Date', '')
             fill_time = row.get('Fill Time', '')
+            account = row.get('Account', 'Default')  # Get account from CSV
             if not all([symbol, side, quantity, price, date_str]):
                 continue
             # Parse date and time
@@ -1107,7 +1122,8 @@ def process_tradovate_orders(csv_reader, strategy, current_user):
                 'quantity': float(quantity),
                 'price': float(price),
                 'datetime': trade_date,
-                'order_id': row.get('orderId', '')
+                'order_id': row.get('orderId', ''),
+                'account': account  # Include account
             })
         except Exception:
             continue
@@ -1131,6 +1147,7 @@ def process_tradovate_orders(csv_reader, strategy, current_user):
             price = order['price']
             dt = order['datetime']
             oid = order['order_id']
+            account = order['account']  # Get account
             
             if side == 'Buy':
                 if short_position > 0:
@@ -1143,8 +1160,9 @@ def process_tradovate_orders(csv_reader, strategy, current_user):
                     avg_short_entry = total_short_value / total_short_qty if total_short_qty > 0 else 0
                     
                     # Create completed short trade
-                    # Apply contract multiplier for MNQ (point value = 2)
-                    point_value = 2 if symbol.upper() == 'MNQU5' else 1
+                    # Get point value from Trade model
+                    base_symbol = symbol.split('U')[0] if 'U' in symbol else symbol  # Remove month code
+                    point_value = Trade.TICKER_POINT_VALUES.get(base_symbol.upper(), 1)
                     gross_pnl = (avg_short_entry - price) * qty_to_close * point_value
                     net_pnl = gross_pnl - (qty_to_close * COMMISSION_PER_CONTRACT * 2)
                     notes = f"Imported from Tradovate Orders - Short: {', '.join([e['order_id'] for e in short_entries])}, Buy: {oid}"
@@ -1160,6 +1178,7 @@ def process_tradovate_orders(csv_reader, strategy, current_user):
                     if not existing_trade:
                         trade = Trade(
                             ticker=symbol,
+                            account=account,  # Add account
                             direction='Short',
                             position_size=qty_to_close,
                             entry_price=avg_short_entry,
@@ -1202,8 +1221,9 @@ def process_tradovate_orders(csv_reader, strategy, current_user):
                     avg_long_entry = total_long_value / total_long_qty if total_long_qty > 0 else 0
                     
                     # Create completed long trade
-                    # Apply contract multiplier for MNQ (point value = 2)
-                    point_value = 2 if symbol.upper() == 'MNQU5' else 1
+                    # Get point value from Trade model
+                    base_symbol = symbol.split('U')[0] if 'U' in symbol else symbol  # Remove month code
+                    point_value = Trade.TICKER_POINT_VALUES.get(base_symbol.upper(), 1)
                     gross_pnl = (price - avg_long_entry) * qty_to_close * point_value
                     net_pnl = gross_pnl - (qty_to_close * COMMISSION_PER_CONTRACT * 2)
                     notes = f"Imported from Tradovate Orders - Long: {', '.join([e['order_id'] for e in long_entries])}, Sell: {oid}"
@@ -1219,6 +1239,7 @@ def process_tradovate_orders(csv_reader, strategy, current_user):
                     if not existing_trade:
                         trade = Trade(
                             ticker=symbol,
+                            account=account,  # Add account
                             direction='Long',
                             position_size=qty_to_close,
                             entry_price=avg_long_entry,

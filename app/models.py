@@ -54,6 +54,7 @@ class Tag(db.Model):
 class Trade(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     ticker = db.Column(db.String(20), nullable=False)
+    account = db.Column(db.String(100), nullable=False, default='Default')
     entry_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     exit_date = db.Column(db.DateTime)
     entry_price = db.Column(db.Float, nullable=False)

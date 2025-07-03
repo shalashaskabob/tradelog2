@@ -13,6 +13,16 @@
                 </select>
             </div>
             <div class="form-group">
+                <label for="account" class="form-label mt-4">Account</label>
+                <select class="form-select" id="account" name="account" required>
+                    {% for account in user_accounts %}
+                        <option value="{{ account }}" {% if edit_mode and trade and trade.account == account %}selected{% endif %}>{{ account }}</option>
+                    {% endfor %}
+                </select>
+                <small class="form-text text-muted">Select an existing account or type a new one below.</small>
+                <input type="text" class="form-control mt-2" id="new_account" name="new_account" placeholder="Or type a new account name">
+            </div>
+            <div class="form-group">
                 <label for="entry_date" class="form-label mt-4">Entry Date</label>
                 <input type="datetime-local" class="form-control" id="entry_date" name="entry_date" required value="{{ trade.entry_date.strftime('%Y-%m-%dT%H:%M') if edit_mode and trade else '' }}">
             </div>

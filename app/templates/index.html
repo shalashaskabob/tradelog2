@@ -35,11 +35,11 @@
                 <form method="GET" action="{{ url_for('main.index') }}" id="filterForm">
                     <!-- Search Bar -->
                     <div class="row mb-3">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label for="search" class="form-label">Search (Ticker or Notes)</label>
                             <input type="text" class="form-control" id="search" name="search" value="{{ search_query }}" placeholder="Search trades...">
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label for="symbol" class="form-label">Symbol</label>
                             <select class="form-select" id="symbol" name="symbol">
                                 <option value="">All Symbols</option>
@@ -48,7 +48,7 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label for="strategy" class="form-label">Strategy</label>
                             <select class="form-select" id="strategy" name="strategy">
                                 <option value="">All Strategies</option>
@@ -57,11 +57,16 @@
                                 {% endfor %}
                             </select>
                         </div>
-                    </div>
-
-                    <!-- Advanced Filters -->
-                    <div class="row mb-3">
-                        <div class="col-md-3">
+                        <div class="col-md-2">
+                            <label for="account" class="form-label">Account</label>
+                            <select class="form-select" id="account" name="account">
+                                <option value="">All Accounts</option>
+                                {% for account in user_accounts %}
+                                    <option value="{{ account }}" {% if account_filter == account %}selected{% endif %}>{{ account }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
                             <label for="direction" class="form-label">Direction</label>
                             <select class="form-select" id="direction" name="direction">
                                 <option value="">All Directions</option>
@@ -69,6 +74,10 @@
                                 <option value="Short" {% if direction_filter == 'Short' %}selected{% endif %}>Short</option>
                             </select>
                         </div>
+                    </div>
+
+                    <!-- Advanced Filters -->
+                    <div class="row mb-3">
                         <div class="col-md-3">
                             <label for="pnl" class="form-label">PnL Status</label>
                             <select class="form-select" id="pnl" name="pnl">
@@ -132,6 +141,7 @@
                     <thead>
                         <tr>
                             <th>Ticker</th>
+                            <th>Account</th>
                             <th>Entry Date</th>
                             <th>Entry Price</th>
                             <th>Direction</th>
@@ -150,6 +160,7 @@
                         {% for trade in trades %}
                             <tr>
                                 <td>{{ trade.ticker }}</td>
+                                <td>{{ trade.account }}</td>
                                 <td>{{ trade.entry_date.strftime('%Y-%m-%d %H:%M') }}</td>
                                 <td>{{ "%.2f"|format(trade.entry_price) }}</td>
                                 <td>{{ trade.direction }}</td>
