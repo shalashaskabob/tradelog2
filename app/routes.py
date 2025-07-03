@@ -1140,7 +1140,9 @@ def process_tradovate_orders(csv_reader, strategy, current_user):
                     avg_short_entry = total_short_value / total_short_qty if total_short_qty > 0 else 0
                     
                     # Create completed short trade
-                    pnl = (avg_short_entry - price) * qty_to_close
+                    # Apply contract multiplier for MNQ (point value = 2)
+                    point_value = 2 if symbol.upper() == 'MNQU5' else 1
+                    pnl = (avg_short_entry - price) * qty_to_close * point_value
                     notes = f"Imported from Tradovate Orders - Short: {', '.join([e['order_id'] for e in short_entries])}, Buy: {oid}"
                     
                     # Check for duplicate trade
@@ -1196,7 +1198,9 @@ def process_tradovate_orders(csv_reader, strategy, current_user):
                     avg_long_entry = total_long_value / total_long_qty if total_long_qty > 0 else 0
                     
                     # Create completed long trade
-                    pnl = (price - avg_long_entry) * qty_to_close
+                    # Apply contract multiplier for MNQ (point value = 2)
+                    point_value = 2 if symbol.upper() == 'MNQU5' else 1
+                    pnl = (price - avg_long_entry) * qty_to_close * point_value
                     notes = f"Imported from Tradovate Orders - Long: {', '.join([e['order_id'] for e in long_entries])}, Sell: {oid}"
                     
                     # Check for duplicate trade
