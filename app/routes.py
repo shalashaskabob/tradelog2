@@ -1136,7 +1136,8 @@ def process_tradovate_orders(csv_reader, strategy, current_user):
                     
                     # Calculate weighted average entry price for short position
                     total_short_value = sum(entry['price'] * entry['qty'] for entry in short_entries)
-                    avg_short_entry = total_short_value / short_position
+                    total_short_qty = sum(entry['qty'] for entry in short_entries)
+                    avg_short_entry = total_short_value / total_short_qty if total_short_qty > 0 else 0
                     
                     # Create completed short trade
                     pnl = (avg_short_entry - price) * qty_to_close
@@ -1191,7 +1192,8 @@ def process_tradovate_orders(csv_reader, strategy, current_user):
                     
                     # Calculate weighted average entry price for long position
                     total_long_value = sum(entry['price'] * entry['qty'] for entry in long_entries)
-                    avg_long_entry = total_long_value / long_position
+                    total_long_qty = sum(entry['qty'] for entry in long_entries)
+                    avg_long_entry = total_long_value / total_long_qty if total_long_qty > 0 else 0
                     
                     # Create completed long trade
                     pnl = (price - avg_long_entry) * qty_to_close
