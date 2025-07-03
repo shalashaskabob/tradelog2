@@ -1,0 +1,40 @@
+body {
+    background-color: #222;
+}
+
+/* Make radio buttons invisible but still focusable */
+#strategy-picker .form-check-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Style the labels to look like buttons and change on selection */
+#strategy-picker .form-check-label {
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+#strategy-picker .form-check-input:checked + .form-check-label {
+    background-color: #0d6efd; /* Bootstrap primary blue */
+    color: white;
+    border-color: #0d6efd;
+}
+
+.calendar-cell {
+    width: 120px;
+    height: 80px;
+    vertical-align: top;
+    text-align: left;
+}
+
+/* Ensure modal background matches card background */
+.modal-content, .modal-body {
+    background: #181c22 !important;
+}
+
+/* Optional: set the image background too, in case of transparency */
+#cardImage {
+    background: #181c22;
+    border-radius: 16px;
+}

@@ -35,11 +35,11 @@
                 <form method="GET" action="{{ url_for('main.index') }}" id="filterForm">
                     <!-- Search Bar -->
                     <div class="row mb-3">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label for="search" class="form-label">Search (Ticker or Notes)</label>
                             <input type="text" class="form-control" id="search" name="search" value="{{ search_query }}" placeholder="Search trades...">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <label for="symbol" class="form-label">Symbol</label>
                             <select class="form-select" id="symbol" name="symbol">
                                 <option value="">All Symbols</option>
@@ -48,7 +48,7 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <label for="strategy" class="form-label">Strategy</label>
                             <select class="form-select" id="strategy" name="strategy">
                                 <option value="">All Strategies</option>
@@ -57,16 +57,11 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-2">
-                            <label for="account" class="form-label">Account</label>
-                            <select class="form-select" id="account" name="account">
-                                <option value="">All Accounts</option>
-                                {% for account in user_accounts %}
-                                    <option value="{{ account }}" {% if account_filter == account %}selected{% endif %}>{{ account }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-2">
+                    </div>
+
+                    <!-- Advanced Filters -->
+                    <div class="row mb-3">
+                        <div class="col-md-3">
                             <label for="direction" class="form-label">Direction</label>
                             <select class="form-select" id="direction" name="direction">
                                 <option value="">All Directions</option>
@@ -74,10 +69,6 @@
                                 <option value="Short" {% if direction_filter == 'Short' %}selected{% endif %}>Short</option>
                             </select>
                         </div>
-                    </div>
-
-                    <!-- Advanced Filters -->
-                    <div class="row mb-3">
                         <div class="col-md-3">
                             <label for="pnl" class="form-label">PnL Status</label>
                             <select class="form-select" id="pnl" name="pnl">
@@ -141,7 +132,6 @@
                     <thead>
                         <tr>
                             <th>Ticker</th>
-                            <th>Account</th>
                             <th>Entry Date</th>
                             <th>Entry Price</th>
                             <th>Direction</th>
@@ -152,19 +142,18 @@
                             <th>Strategy</th>
                             <th>Tags</th>
                             <th>Screenshot</th>
-                            <th class="notes-col">Notes</th>
-                            <th class="actions-col">Actions</th>
+                            <th>Notes</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for trade in trades %}
                             <tr>
                                 <td>{{ trade.ticker }}</td>
-                                <td>{{ trade.account }}</td>
                                 <td>{{ trade.entry_date.strftime('%Y-%m-%d %H:%M') }}</td>
                                 <td>{{ "%.2f"|format(trade.entry_price) }}</td>
                                 <td>{{ trade.direction }}</td>
-                                <td>{{ trade.position_size|float|round(2) }}</td>
+                                <td>{{ trade.position_size }}</td>
                                 <td>{{ trade.exit_date.strftime('%Y-%m-%d %H:%M') if trade.exit_date else '' }}</td>
                                 <td>{{ "%.2f"|format(trade.exit_price) if trade.exit_price else '' }}</td>
                                 <td class="{{ 'text-success' if trade.pnl > 0 else 'text-danger' if trade.pnl < 0 else '' }}">
@@ -179,7 +168,7 @@
                                 <td>
                                     {% if trade.screenshot %}
                                         <img src="{{ url_for('main.uploaded_file', filepath=trade.screenshot.replace('screenshot', 'thumb')) }}"
-                                             alt="Screenshot thumbnail" class="img-thumbnail" style="width: 60px; height: 60px; cursor: pointer;"
+                                             alt="Screenshot thumbnail" class="img-thumbnail" style="width: 60px; height: 60px; cursor: pointer;" 
                                              data-bs-toggle="modal" data-bs-target="#screenshotModal{{ trade.id }}">
                                         <!-- Modal -->
                                         <div class="modal fade" id="screenshotModal{{ trade.id }}" tabindex="-1" aria-labelledby="screenshotModalLabel{{ trade.id }}" aria-hidden="true">
@@ -199,9 +188,9 @@
                                         </div>
                                     {% endif %}
                                 </td>
-                                <td class="notes-col">{{ trade.notes }}</td>
-                                <td class="actions-col">
-                                    <div class="d-flex align-items-center gap-2 justify-content-center flex-wrap">
+                                <td>{{ trade.notes }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
                                         <form action="{{ url_for('main.delete_trade', trade_id=trade.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this trade?');" style="display:inline;">
                                             <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                                         </form>
@@ -228,8 +217,7 @@
                                 </div>
                               </div>
                             </div>
-                        {% endfor %}
-                        {% if not trades %}
+                        {% else %}
                             <tr>
                                 <td colspan="12" class="text-center">
                                     {% if search_query or symbol_filter or strategy_filter or direction_filter or pnl_filter or start_date or end_date %}
@@ -240,7 +228,7 @@
                                     {% endif %}
                                 </td>
                             </tr>
-                        {% endif %}
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -268,10 +256,9 @@
                     <span class="badge bg-secondary">In Use</span>
                   {% endif %}
                 </li>
-              {% endfor %}
-              {% if not strategies %}
+              {% else %}
                 <li class="list-group-item bg-dark text-white">No strategies found.</li>
-              {% endif %}
+              {% endfor %}
             </ul>
           </div>
         </div>
@@ -289,31 +276,7 @@
         </div>
       </div>
     </div>
-
-    <style>
-        /* Limit the width of the Notes column and wrap text */
-        td.notes-col {
-            max-width: 220px;
-            white-space: pre-line;
-            word-break: break-word;
-            overflow-wrap: break-word;
-        }
-        /* Fixed width for Actions column and vertical centering */
-        td.actions-col {
-            min-width: 140px;
-            max-width: 180px;
-            vertical-align: middle !important;
-        }
-        /* Responsive: stack buttons on small screens */
-        @media (max-width: 600px) {
-            td.actions-col .d-flex {
-                flex-direction: column !important;
-                gap: 0.25rem !important;
-            }
-        }
-    </style>
-
-
+{% endblock %}
 
 {% block scripts %}
 <script>
