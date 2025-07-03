@@ -938,66 +938,7 @@ def import_trades():
     return render_template('import_trades.html', 
                          title='Import Trades')
 
-@bp.route('/tradovate_credentials', methods=['GET', 'POST', 'DELETE'])
-@login_required
-def manage_tradovate_credentials():
-    from app.models import TradovateCredentials
-    
-    if request.method == 'POST':
-        # Update credentials
-        username = request.form.get('username')
-        password = request.form.get('password')
-        
-        if not username or not password:
-            flash('Please provide both username and password.', 'danger')
-            return redirect(url_for('main.manage_tradovate_credentials'))
-        
-        try:
-            from app.tradovate_client import TradovateClient
-            client = TradovateClient()
-            auth_result = client.authenticate(username, password)
-            
-            # Update or create credentials
-            credentials = TradovateCredentials.query.filter_by(user_id=current_user.id).first()
-            if credentials:
-                credentials.username = username
-                credentials.access_token = auth_result['access_token']
-                credentials.refresh_token = auth_result['refresh_token']
-                credentials.token_expires_at = datetime.utcnow() + timedelta(seconds=auth_result['expires_in'])
-                credentials.updated_at = datetime.utcnow()
-            else:
-                credentials = TradovateCredentials(
-                    user_id=current_user.id,
-                    username=username,
-                    access_token=auth_result['access_token'],
-                    refresh_token=auth_result['refresh_token'],
-                    token_expires_at=datetime.utcnow() + timedelta(seconds=auth_result['expires_in'])
-                )
-                db.session.add(credentials)
-            
-            db.session.commit()
-            flash('Tradovate credentials updated successfully.', 'success')
-            
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Failed to update credentials: {str(e)}', 'danger')
-        
-        return redirect(url_for('main.manage_tradovate_credentials'))
-    
-    elif request.method == 'DELETE':
-        # Delete credentials
-        credentials = TradovateCredentials.query.filter_by(user_id=current_user.id).first()
-        if credentials:
-            db.session.delete(credentials)
-            db.session.commit()
-            flash('Tradovate credentials deleted successfully.', 'success')
-        return jsonify({'success': True})
-    
-    # GET request - show credentials management page
-    credentials = TradovateCredentials.query.filter_by(user_id=current_user.id).first()
-    return render_template('tradovate_credentials.html', 
-                         title='Tradovate Credentials',
-                         credentials=credentials)
+
 
 @bp.route('/import_csv', methods=['POST'])
 @login_required
