@@ -191,9 +191,21 @@ def delete_trade(trade_id):
 @login_required
 def clear_log():
     try:
+        # Get all trade IDs for this user
+        trade_ids = [t.id for t in Trade.query.filter_by(user_id=current_user.id).all()]
+        
+        # Delete trade-tag associations first
+        if trade_ids:
+            from app.models import trade_tags
+            db.session.execute(
+                trade_tags.delete().where(trade_tags.c.trade_id.in_(trade_ids))
+            )
+        
+        # Delete all trades for this user
         num_rows_deleted = Trade.query.filter_by(user_id=current_user.id).delete()
+        
         db.session.commit()
-        flash(f'Successfully deleted {num_rows_deleted} trades.', 'success')
+        flash(f'Successfully deleted {num_rows_deleted} trades and all associated tags.', 'success')
     except Exception as e:
         db.session.rollback()
         flash(f'Error clearing trade log: {e}', 'danger')
