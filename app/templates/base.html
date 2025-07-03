@@ -112,19 +112,6 @@
         
         // Load Bootstrap immediately
         loadBootstrap();
-        
-        // Test Bootstrap functionality after a short delay
-        setTimeout(function() {
-            if (typeof bootstrap !== 'undefined') {
-                console.log('Bootstrap is working!');
-                // Test modal functionality
-                if (bootstrap.Modal) {
-                    console.log('Bootstrap modals are available');
-                }
-            } else {
-                console.error('Bootstrap failed to load after all attempts');
-            }
-        }, 2000);
     </script>
     {% block scripts %}{% endblock %}
   </body>
