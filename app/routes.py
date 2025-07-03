@@ -643,8 +643,13 @@ def calendar():
     # Aggregate PnL by week (ISO week) - using Python calculation for compatibility
     week_pnl = {}
     for row in daily_pnl_query:
+        # Convert string date to date object if needed
+        if isinstance(row.trade_date, str):
+            trade_date = datetime.strptime(row.trade_date, '%Y-%m-%d').date()
+        else:
+            trade_date = row.trade_date
         # Calculate ISO week number from the date
-        week_num = row.trade_date.isocalendar()[1]
+        week_num = trade_date.isocalendar()[1]
         if week_num not in week_pnl:
             week_pnl[week_num] = 0
         week_pnl[week_num] += float(row.total_pnl)
