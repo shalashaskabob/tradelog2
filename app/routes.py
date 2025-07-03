@@ -40,7 +40,7 @@ def index():
     
     # Get pagination parameters
     page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 50, type=int)  # Default 50 trades per page
+    per_page = request.args.get('per_page', 25, type=int)  # Default 25 trades per page
     
     # Start with base query for current user's trades
     query = Trade.query.filter_by(user_id=current_user.id)
