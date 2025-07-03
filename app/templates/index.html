@@ -221,7 +221,7 @@
                                   <div class="modal-body text-center">
                                     <img id="cardImage{{ trade.id }}" src="{{ url_for('main.share_trade', trade_id=trade.id) }}" alt="Trade Card" style="width: 400px; height: 400px; border-radius: 16px; box-shadow: 0 4px 32px rgba(0,0,0,0.3);">
                                     <div class="mt-3">
-                                      <input type="text" class="form-control text-center" id="shareLink{{ trade.id }}" value="{{ request.url_root | trim('/') }}{{ url_for('main.share_trade_png', trade_id=trade.id) }}" readonly style="background: #222; color: #fff; border: none;">
+                                      <input type="text" class="form-control text-center" id="shareLink{{ trade.id }}" value="{{ request.url_root.rstrip('/') }}{{ url_for('main.share_trade_png', trade_id=trade.id) }}" readonly style="background: #222; color: #fff; border: none;">
                                       <button class="btn btn-primary mt-2" onclick="copyShareLink('{{ trade.id }}')">Copy Link</button>
                                     </div>
                                   </div>
