@@ -252,8 +252,10 @@ def add_strategy():
 @bp.route('/statistics')
 @login_required
 def statistics():
-    # Get account filter from request
+    # Get account filter and pagination parameters from request
     account_filter = request.args.get('account', '').strip()
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 50, type=int)  # Default 50 trades per page
     
     # Start with base query for current user's trades
     query = Trade.query.filter_by(user_id=current_user.id)
@@ -262,12 +264,28 @@ def statistics():
     if account_filter:
         query = query.filter(Trade.account == account_filter)
     
-    trades = query.all()
-    if not trades:
+    # Get total count for pagination
+    total_trades_count = query.count()
+    
+    # Apply pagination
+    pagination = query.order_by(Trade.entry_date.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    
+    trades = pagination.items
+    
+    if not trades and page == 1:
         return render_template('statistics.html', title='Statistics', no_trades=True, account_filter=account_filter)
 
+    # For statistics calculations, we need ALL trades (not just the current page)
+    # So we'll get all trades for the user/account filter
+    all_trades_query = Trade.query.filter_by(user_id=current_user.id)
+    if account_filter:
+        all_trades_query = all_trades_query.filter(Trade.account == account_filter)
+    all_trades = all_trades_query.all()
+    
     # Sort trades by execution date (exit_date if present, else entry_date)
-    trades_sorted = sorted(trades, key=lambda t: t.exit_date or t.entry_date)
+    trades_sorted = sorted(all_trades, key=lambda t: t.exit_date or t.entry_date)
 
     # --- Basic Stats ---
     total_trades = len(trades_sorted)
@@ -399,7 +417,11 @@ def statistics():
         short_be=short_be,
         # Account filtering
         account_filter=account_filter,
-        user_accounts=user_accounts
+        user_accounts=user_accounts,
+        # Pagination
+        pagination=pagination,
+        page=page,
+        per_page=per_page
     )
 
 @bp.route('/change-password', methods=['GET', 'POST'])
@@ -776,17 +798,33 @@ def top_trades():
     today = datetime.utcnow().date()
     start_of_week = today - timedelta(days=today.weekday())
     end_of_week = start_of_week + timedelta(days=6)
-    trades = (
+    
+    # Get pagination parameters
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 12, type=int)  # Default 12 trades per page (4 rows of 3)
+    
+    # Build query with pagination
+    query = (
         Trade.query
         .join(User, Trade.user_id == User.id)
         .filter(User.show_on_top_trades == True)
         .filter(Trade.exit_date >= start_of_week)
         .filter(Trade.exit_date <= end_of_week)
         .order_by(Trade.pnl.desc())
-        .limit(10)
-        .all()
     )
-    return render_template('top_trades.html', trades=trades) 
+    
+    # Apply pagination
+    pagination = query.paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    
+    trades = pagination.items
+    
+    return render_template('top_trades.html', 
+                         trades=trades, 
+                         pagination=pagination,
+                         page=page,
+                         per_page=per_page) 
 
 @bp.route('/update_top_trades_optin', methods=['POST'])
 @login_required

@@ -35,7 +35,10 @@ class Strategy(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    __table_args__ = (db.UniqueConstraint('name', 'user_id', name='_user_strategy_uc'),)
+    __table_args__ = (
+        db.UniqueConstraint('name', 'user_id', name='_user_strategy_uc'),
+        db.Index('idx_strategy_user_id', 'user_id'),  # Index for filtering by user
+    )
     user = db.relationship('User', backref=db.backref('strategies', lazy='dynamic'))
 
     def __repr__(self):
@@ -45,6 +48,9 @@ class Tag(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    __table_args__ = (
+        db.Index('idx_tag_user_id', 'user_id'),  # Index for filtering by user
+    )
     user = db.relationship('User', backref=db.backref('tags', lazy='dynamic'))
     trades = db.relationship('Trade', secondary=trade_tags, back_populates='tags')
 
@@ -68,6 +74,21 @@ class Trade(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     screenshot = db.Column(db.String(256))  # stores filename or path
     tags = db.relationship('Tag', secondary=trade_tags, back_populates='trades')
+
+    # Performance indexes for common queries
+    __table_args__ = (
+        db.Index('idx_trade_user_id', 'user_id'),  # Most important - used in almost every query
+        db.Index('idx_trade_entry_date', 'entry_date'),  # For date filtering and sorting
+        db.Index('idx_trade_exit_date', 'exit_date'),  # For date filtering and sorting
+        db.Index('idx_trade_pnl', 'pnl'),  # For PnL filtering and sorting
+        db.Index('idx_trade_ticker', 'ticker'),  # For symbol filtering
+        db.Index('idx_trade_account', 'account'),  # For account filtering
+        db.Index('idx_trade_direction', 'direction'),  # For direction filtering
+        db.Index('idx_trade_strategy_id', 'strategy_id'),  # For strategy filtering
+        db.Index('idx_trade_user_exit_date', 'user_id', 'exit_date'),  # Composite index for top trades
+        db.Index('idx_trade_user_entry_date', 'user_id', 'entry_date'),  # Composite index for main listing
+        db.Index('idx_trade_user_pnl', 'user_id', 'pnl'),  # Composite index for PnL queries
+    )
 
     TICKER_POINT_VALUES = {
         'MNQ': 2,
