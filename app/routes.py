@@ -21,6 +21,9 @@ bp = Blueprint('main', __name__)
 UPLOAD_FOLDER = '/var/data/uploads'
 THUMB_SIZE = (150, 150)
 
+# Commission rate: $0.25 per contract per side (buy and sell)
+COMMISSION_PER_CONTRACT = 0.25
+
 @bp.route('/')
 @bp.route('/index')
 @login_required
@@ -1142,7 +1145,8 @@ def process_tradovate_orders(csv_reader, strategy, current_user):
                     # Create completed short trade
                     # Apply contract multiplier for MNQ (point value = 2)
                     point_value = 2 if symbol.upper() == 'MNQU5' else 1
-                    pnl = (avg_short_entry - price) * qty_to_close * point_value
+                    gross_pnl = (avg_short_entry - price) * qty_to_close * point_value
+                    net_pnl = gross_pnl - (qty_to_close * COMMISSION_PER_CONTRACT * 2)
                     notes = f"Imported from Tradovate Orders - Short: {', '.join([e['order_id'] for e in short_entries])}, Buy: {oid}"
                     
                     # Check for duplicate trade
@@ -1165,7 +1169,7 @@ def process_tradovate_orders(csv_reader, strategy, current_user):
                             strategy=strategy,
                             user_id=current_user.id,
                             notes=notes,
-                            pnl=pnl
+                            pnl=net_pnl
                         )
                         db.session.add(trade)
                         imported_count += 1
@@ -1200,7 +1204,8 @@ def process_tradovate_orders(csv_reader, strategy, current_user):
                     # Create completed long trade
                     # Apply contract multiplier for MNQ (point value = 2)
                     point_value = 2 if symbol.upper() == 'MNQU5' else 1
-                    pnl = (price - avg_long_entry) * qty_to_close * point_value
+                    gross_pnl = (price - avg_long_entry) * qty_to_close * point_value
+                    net_pnl = gross_pnl - (qty_to_close * COMMISSION_PER_CONTRACT * 2)
                     notes = f"Imported from Tradovate Orders - Long: {', '.join([e['order_id'] for e in long_entries])}, Sell: {oid}"
                     
                     # Check for duplicate trade
@@ -1223,7 +1228,7 @@ def process_tradovate_orders(csv_reader, strategy, current_user):
                             strategy=strategy,
                             user_id=current_user.id,
                             notes=notes,
-                            pnl=pnl
+                            pnl=net_pnl
                         )
                         db.session.add(trade)
                         imported_count += 1
