@@ -602,38 +602,52 @@ def calendar():
     
     # Use database aggregation for better performance
     # Get daily PnL totals using SQL aggregation
-    daily_pnl_query = db.session.query(
-        db.func.date(Trade.entry_date).label('trade_date'),
-        db.func.sum(Trade.pnl).label('total_pnl'),
-        db.func.count(Trade.id).label('trade_count')
-    ).filter(
-        Trade.user_id == current_user.id,
-        Trade.entry_date >= start_date,
-        Trade.entry_date < end_date + timedelta(days=1),
-        Trade.pnl.isnot(None)
-    ).group_by(db.func.date(Trade.entry_date)).all()
+    try:
+        daily_pnl_query = db.session.query(
+            db.func.date(Trade.entry_date).label('trade_date'),
+            db.func.sum(Trade.pnl).label('total_pnl'),
+            db.func.count(Trade.id).label('trade_count')
+        ).filter(
+            Trade.user_id == current_user.id,
+            Trade.entry_date >= start_date,
+            Trade.entry_date < end_date + timedelta(days=1),
+            Trade.pnl.isnot(None)
+        ).group_by(db.func.date(Trade.entry_date)).all()
+        
+        # Convert to dictionaries for template
+        daily_pnl = {}
+        daily_trades = {}
+        for row in daily_pnl_query:
+            daily_pnl[row.trade_date] = float(row.total_pnl)
+            daily_trades[row.trade_date] = int(row.trade_count)
+    except Exception as e:
+        # Fallback to Python processing if database aggregation fails
+        print(f"Database aggregation failed, using Python fallback: {e}")
+        trades = Trade.query.filter(
+            Trade.user_id == current_user.id,
+            Trade.entry_date >= start_date,
+            Trade.entry_date < end_date + timedelta(days=1),
+            Trade.pnl.isnot(None)
+        ).all()
+        
+        daily_pnl = {}
+        daily_trades = {}
+        for trade in trades:
+            trade_date = trade.entry_date.date()
+            if trade_date not in daily_pnl:
+                daily_pnl[trade_date] = 0
+                daily_trades[trade_date] = 0
+            daily_pnl[trade_date] += trade.pnl or 0
+            daily_trades[trade_date] += 1
     
-    # Convert to dictionaries for template
-    daily_pnl = {}
-    daily_trades = {}
-    for row in daily_pnl_query:
-        daily_pnl[row.trade_date] = float(row.total_pnl)
-        daily_trades[row.trade_date] = int(row.trade_count)
-    
-    # Aggregate PnL by week (ISO week) - also using database
-    week_pnl_query = db.session.query(
-        db.func.extract('week', Trade.entry_date).label('week_num'),
-        db.func.sum(Trade.pnl).label('total_pnl')
-    ).filter(
-        Trade.user_id == current_user.id,
-        Trade.entry_date >= start_date,
-        Trade.entry_date < end_date + timedelta(days=1),
-        Trade.pnl.isnot(None)
-    ).group_by(db.func.extract('week', Trade.entry_date)).all()
-    
+    # Aggregate PnL by week (ISO week) - using Python calculation for compatibility
     week_pnl = {}
-    for row in week_pnl_query:
-        week_pnl[int(row.week_num)] = float(row.total_pnl)
+    for row in daily_pnl_query:
+        # Calculate ISO week number from the date
+        week_num = row.trade_date.isocalendar()[1]
+        if week_num not in week_pnl:
+            week_pnl[week_num] = 0
+        week_pnl[week_num] += float(row.total_pnl)
     
     # Prepare calendar grid
     cal_grid = cal.monthcalendar(year, month)
