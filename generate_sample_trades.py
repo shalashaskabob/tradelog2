@@ -4,10 +4,11 @@ from datetime import datetime, timedelta
 import uuid
 
 # Configuration
-NUM_TRADES = 50
+NUM_TRADES = 400
 NUM_ACCOUNTS = 20
-START_DATE = datetime(2024, 1, 1)
-END_DATE = datetime(2025, 1, 1)
+# Use a past date range to ensure it works
+START_DATE = datetime(2025, 1, 1)
+END_DATE = datetime(2025, 7, 4)
 
 # Account names - TakeProfitTrader format
 ACCOUNT_PREFIXES = [
@@ -103,7 +104,7 @@ def generate_trade_pair():
         'spreadDefinitionId': '',
         'Version ID': buy_order_id,
         'Timestamp': entry_date.strftime('%m/%d/%Y %H:%M:%S'),
-        'Date': entry_date.strftime('%m/%d/%y').lstrip('0').replace('/0', '/'),
+        'Date': entry_date.strftime('%m/%d/%y'),
         'Quantity': quantity,
         'Text': 'Tradingview',
         'Type': ' Market',
@@ -136,7 +137,7 @@ def generate_trade_pair():
         'spreadDefinitionId': '',
         'Version ID': sell_order_id,
         'Timestamp': exit_date.strftime('%m/%d/%Y %H:%M:%S'),
-        'Date': exit_date.strftime('%m/%d/%y').lstrip('0').replace('/0', '/'),
+        'Date': exit_date.strftime('%m/%d/%y'),
         'Quantity': quantity,
         'Text': 'Exit',
         'Type': ' Market',
