@@ -38,6 +38,10 @@ def index():
     start_date = request.args.get('start_date', '').strip()
     end_date = request.args.get('end_date', '').strip()
     
+    # Get pagination parameters
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 50, type=int)  # Default 50 trades per page
+    
     # Start with base query for current user's trades
     query = Trade.query.filter_by(user_id=current_user.id)
     
@@ -89,19 +93,28 @@ def index():
         except ValueError:
             pass
     
-    # Get filtered trades
-    trades = query.order_by(Trade.entry_date.desc()).all()
+    # Apply pagination to filtered trades
+    pagination = query.order_by(Trade.entry_date.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    trades = pagination.items
     
-    # Get filter options for the form
+    # Get filter options for the form - use database aggregation for better performance
     user_strategies = Strategy.query.filter_by(user_id=current_user.id).order_by(Strategy.name).all()
-    user_symbols = db.session.query(Trade.ticker).filter_by(user_id=current_user.id).distinct().order_by(Trade.ticker).all()
-    user_symbols = [symbol[0] for symbol in user_symbols]
-    user_accounts = db.session.query(Trade.account).filter_by(user_id=current_user.id).distinct().order_by(Trade.account).all()
-    user_accounts = [account[0] for account in user_accounts]
+    
+    # Use database aggregation for distinct values
+    user_symbols_result = db.session.query(Trade.ticker).filter_by(user_id=current_user.id).distinct().order_by(Trade.ticker).all()
+    user_symbols = [symbol[0] for symbol in user_symbols_result]
+    
+    user_accounts_result = db.session.query(Trade.account).filter_by(user_id=current_user.id).distinct().order_by(Trade.account).all()
+    user_accounts = [account[0] for account in user_accounts_result]
     
     return render_template('index.html', 
                          title='Home', 
                          trades=trades,
+                         pagination=pagination,
+                         page=page,
+                         per_page=per_page,
                          search_query=search_query,
                          symbol_filter=symbol_filter,
                          strategy_filter=strategy_filter,
