@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="en" data-bs-theme="dark">
   <head>
-    <meta charset="utf-g">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ title }} - Trade Tracker</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/darkly/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/darkly/bootstrap.min.css" rel="stylesheet" onerror="this.onerror=null; this.href='https://cdnjs.cloudflare.com/ajax/libs/bootswatch/5.3.3/darkly/bootstrap.min.css';">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" onerror="this.onerror=null; this.href='https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.css';">
   </head>
   <body>
     <nav class="navbar navbar-expand-lg bg-dark" data-bs-theme="dark">
@@ -76,17 +76,55 @@
         {% block content %}{% endblock %}
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <script>
-        // Fallback if Bootstrap fails to load
-        if (typeof bootstrap === 'undefined') {
-            console.log('Bootstrap failed to load, trying alternative CDN...');
-            var script = document.createElement('script');
-            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js';
-            script.integrity = 'sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz';
-            script.crossOrigin = 'anonymous';
-            document.head.appendChild(script);
+        // Try multiple Bootstrap CDNs with better error handling
+        function loadBootstrap() {
+            const cdnUrls = [
+                'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js',
+                'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js',
+                'https://unpkg.com/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js',
+                '/static/js/bootstrap.bundle.min.js'  // Local fallback
+            ];
+            
+            let currentIndex = 0;
+            
+            function tryNextCDN() {
+                if (currentIndex >= cdnUrls.length) {
+                    console.error('All Bootstrap CDNs failed to load');
+                    return;
+                }
+                
+                const script = document.createElement('script');
+                script.src = cdnUrls[currentIndex];
+                script.onload = function() {
+                    console.log('Bootstrap loaded successfully from:', cdnUrls[currentIndex]);
+                };
+                script.onerror = function() {
+                    console.log('Failed to load Bootstrap from:', cdnUrls[currentIndex]);
+                    currentIndex++;
+                    tryNextCDN();
+                };
+                document.head.appendChild(script);
+            }
+            
+            tryNextCDN();
         }
+        
+        // Load Bootstrap immediately
+        loadBootstrap();
+        
+        // Test Bootstrap functionality after a short delay
+        setTimeout(function() {
+            if (typeof bootstrap !== 'undefined') {
+                console.log('Bootstrap is working!');
+                // Test modal functionality
+                if (bootstrap.Modal) {
+                    console.log('Bootstrap modals are available');
+                }
+            } else {
+                console.error('Bootstrap failed to load after all attempts');
+            }
+        }, 2000);
     </script>
     {% block scripts %}{% endblock %}
   </body>
