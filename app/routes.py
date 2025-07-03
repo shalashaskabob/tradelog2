@@ -632,8 +632,13 @@ def calendar():
         daily_pnl = {}
         daily_trades = {}
         for row in daily_pnl_query:
-            daily_pnl[row.trade_date] = float(row.total_pnl)
-            daily_trades[row.trade_date] = int(row.trade_count)  # This is the count, not a list
+            # Convert string date to date object if needed
+            if isinstance(row.trade_date, str):
+                trade_date = datetime.strptime(row.trade_date, '%Y-%m-%d').date()
+            else:
+                trade_date = row.trade_date
+            daily_pnl[trade_date] = float(row.total_pnl)
+            daily_trades[trade_date] = int(row.trade_count)  # This is the count, not a list
     except Exception as e:
         # Fallback to Python processing if database aggregation fails
         print(f"Database aggregation failed, using Python fallback: {e}")
