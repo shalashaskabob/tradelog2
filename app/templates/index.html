@@ -201,12 +201,10 @@
                                 </td>
                                 <td class="notes-col">{{ trade.notes }}</td>
                                 <td class="actions-col">
-                                    <div class="d-flex align-items-center gap-2 justify-content-center flex-wrap">
-                                        <form action="{{ url_for('main.delete_trade', trade_id=trade.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this trade?');" style="display:inline;">
-                                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                                        </form>
+                                    <div class="d-flex align-items-center gap-1 justify-content-center flex-wrap">
                                         <a href="{{ url_for('main.edit_trade', trade_id=trade.id) }}" class="btn btn-sm btn-secondary">Edit</a>
-                                        <a href="#" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#shareModal{{ trade.id }}" onclick="console.log('Share clicked for trade {{ trade.id }}'); console.log('Modal element:', document.getElementById('shareModal{{ trade.id }}')); console.log('Bootstrap:', typeof bootstrap);">Share</a>
+                                        <button type="button" class="btn btn-sm btn-danger" onclick="deleteTrade({{ trade.id }})">Delete</button>
+                                        <a href="#" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#shareModal{{ trade.id }}">Share</a>
                                     </div>
                                 </td>
                             </tr>
@@ -303,15 +301,26 @@
         }
         /* Fixed width for Actions column and vertical centering */
         td.actions-col {
-            min-width: 140px;
-            max-width: 180px;
+            min-width: 160px;
+            max-width: 200px;
             vertical-align: middle !important;
+            text-align: center;
+        }
+        /* Ensure all buttons in actions column are the same size */
+        td.actions-col .btn {
+            min-width: 50px;
+            font-size: 0.875rem;
+            padding: 0.25rem 0.5rem;
         }
         /* Responsive: stack buttons on small screens */
         @media (max-width: 600px) {
             td.actions-col .d-flex {
                 flex-direction: column !important;
                 gap: 0.25rem !important;
+            }
+            td.actions-col .btn {
+                min-width: 60px;
+                font-size: 0.8rem;
             }
         }
     </style>
@@ -374,6 +383,17 @@
             
             // Make copyShareLink available globally
             window.copyShareLink = copyShareLink;
+            
+            // Delete trade function
+            window.deleteTrade = function(tradeId) {
+                if (confirm('Are you sure you want to delete this trade?')) {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '{{ url_for("main.delete_trade", trade_id=0) }}'.replace('0', tradeId);
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            };
         } else {
             // Bootstrap not loaded yet, wait a bit and try again
             setTimeout(waitForBootstrap, 100);
